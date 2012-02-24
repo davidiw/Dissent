@@ -8,7 +8,8 @@
 namespace Dissent {
 namespace Messaging {
   /**
-   * Used to create a request callback
+   * Used to create a request callback, note this does NOT keep a pointer,
+   * it internally uses slots and signals and func *must* be a valid slot.
    */
   class RequestHandler : public QObject {
     Q_OBJECT
@@ -30,12 +31,20 @@ namespace Messaging {
        */
       virtual ~RequestHandler() {}
 
+      /**
+       * Called by the RpcHandler when a request for this method is called
+       * @param request the request
+       */
       inline void MakeRequest(const Request &request) const
       {
         emit MakeRequestSignal(request);
       }
 
     signals:
+      /**
+       * Signal emitted by MakeRequest to call into the slot associated w/ this signal
+       * @param request the request
+       */
       void MakeRequestSignal(const Request &request) const;
   };
 }

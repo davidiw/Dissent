@@ -31,9 +31,7 @@ namespace Tests {
     meh0.edge->SetSink(rpc0);
 
     TestRpc test0;
-    QSharedPointer<RequestHandler> req_h(new RequestHandler());
-    QObject::connect(req_h.data(), SIGNAL(MakeRequestSignal(const Request &)),
-        &test0, SLOT(Add(const Request &)));
+    QSharedPointer<RequestHandler> req_h(new RequestHandler(&test0, "Add"));
     rpc0.Register("add", req_h);
 
     RpcHandler rpc1;

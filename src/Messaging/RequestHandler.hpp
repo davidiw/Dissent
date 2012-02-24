@@ -14,6 +14,17 @@ namespace Messaging {
     Q_OBJECT
 
     public:
+      RequestHandler(const QObject *obj, const char *func)
+      {
+        QString slot = QString::number(QSLOT_CODE) + func +
+          "(const Request &)" + QLOCATION;
+
+        QObject::connect(this,
+            SIGNAL(MakeRequestSignal(const Request &)),
+            obj,
+            slot.toUtf8().data());
+      }
+
       /**
        * Destructor
        */

@@ -20,7 +20,6 @@ HEADERS += ext/joyent-http-parser/http_parser.h \
            ext/qt-json/json.h \
            src/Dissent.hpp \
            src/Messaging/BufferSink.hpp \
-           src/Messaging/BufferSinkWithSignal.hpp \
            src/Messaging/DummySink.hpp \
            src/Messaging/GetDataCallback.hpp \
            src/Messaging/InvisibleFilter.hpp \
@@ -32,8 +31,19 @@ HEADERS += ext/joyent-http-parser/http_parser.h \
            src/Messaging/Response.hpp \
            src/Messaging/ResponseHandler.hpp \
            src/Messaging/RpcHandler.hpp \
-           src/Messaging/SignalSink.hpp \
            src/Messaging/Source.hpp \
+           src/Transports/Address.hpp \
+           src/Transports/AddressFactory.hpp \
+           src/Transports/BufferAddress.hpp \
+           src/Transports/BufferEdge.hpp \
+           src/Transports/BufferEdgeListener.hpp \
+           src/Transports/Edge.hpp \
+           src/Transports/EdgeFactory.hpp \
+           src/Transports/EdgeListener.hpp \
+           src/Transports/EdgeListenerFactory.hpp \
+           src/Transports/TcpAddress.hpp \
+           src/Transports/TcpEdge.hpp \
+           src/Transports/TcpEdgeListener.hpp \
            src/Utils/Logging.hpp \
            src/Utils/Random.hpp \
            src/Utils/QRunTimeError.hpp \
@@ -53,8 +63,18 @@ HEADERS += ext/joyent-http-parser/http_parser.h \
 SOURCES += ext/joyent-http-parser/http_parser.c \
            ext/qt-json/json.cpp \
            src/Messaging/RpcHandler.cpp \
-           src/Messaging/SignalSink.cpp \
-           src/Messaging/Source.cpp \
+           src/Transports/Address.cpp \
+           src/Transports/AddressFactory.cpp \
+           src/Transports/BufferAddress.cpp \
+           src/Transports/BufferEdge.cpp \
+           src/Transports/BufferEdgeListener.cpp \
+           src/Transports/Edge.cpp \
+           src/Transports/EdgeFactory.cpp \
+           src/Transports/EdgeListener.cpp \
+           src/Transports/EdgeListenerFactory.cpp \
+           src/Transports/TcpAddress.cpp \
+           src/Transports/TcpEdge.cpp \
+           src/Transports/TcpEdgeListener.cpp \
            src/Utils/Logging.cpp \
            src/Utils/Random.cpp \
            src/Utils/Sleeper.cpp \
@@ -87,8 +107,12 @@ HEADERS += ext/googletest/include/gtest/gtest-death-test.h \
            ext/googletest/include/gtest/internal/gtest-type-util.h \
            src/Tests/DissentTest.hpp \
            src/Tests/Mock.hpp \
+           src/Tests/MockEdgeHandler.hpp \
+           src/Tests/MockSender.hpp \
+           src/Tests/MockSource.hpp \
            src/Tests/RpcTest.hpp
 
 SOURCES += ext/googletest/src/gtest-all.cc \
+           src/Tests/EdgeTest.cpp \
            src/Tests/MainTest.cpp \
            src/Tests/RpcTest.cpp 

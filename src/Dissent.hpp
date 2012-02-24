@@ -73,7 +73,6 @@
 #include "Identity/GroupHolder.hpp"
 */
 #include "Messaging/BufferSink.hpp"
-#include "Messaging/BufferSinkWithSignal.hpp"
 #include "Messaging/DummySink.hpp"
 //#include "Messaging/Filter.hpp"
 #include "Messaging/GetDataCallback.hpp" 
@@ -85,7 +84,6 @@
 #include "Messaging/Response.hpp"
 #include "Messaging/ResponseHandler.hpp"
 #include "Messaging/RpcHandler.hpp"
-#include "Messaging/SignalSink.hpp"
 #include "Messaging/Source.hpp"
 /*
 #include "Overlay/BaseOverlay.hpp"
@@ -98,7 +96,7 @@
 #include "PeerReview/PRManager.hpp"
 #include "PeerReview/ReceiveEntry.hpp"
 #include "PeerReview/SendEntry.hpp"
-
+*/
 #include "Transports/Address.hpp"
 #include "Transports/AddressFactory.hpp"
 #include "Transports/BufferAddress.hpp"
@@ -111,7 +109,7 @@
 #include "Transports/TcpAddress.hpp"
 #include "Transports/TcpEdge.hpp"
 #include "Transports/TcpEdgeListener.hpp"
-*/
+
 #include "Utils/Logging.hpp"
 #include "Utils/QRunTimeError.hpp"
 #include "Utils/Random.hpp"
@@ -155,8 +153,8 @@ using namespace Dissent::Identity;
 using namespace Dissent::Messaging;
 /*
 using namespace Dissent::Overlay;
-using namespace Dissent::Transports;
 */
+using namespace Dissent::Transports;
 using namespace Dissent::Utils;
 /*
 using namespace Dissent::Web;

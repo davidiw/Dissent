@@ -28,7 +28,7 @@ namespace Transports {
 
   void BufferEdge::Send(const QByteArray &data)
   {
-    if(_closed) {
+    if(Stopped()) {
       qWarning() << "Attempted to send on a closed edge.";
       return;
     }
@@ -43,11 +43,9 @@ namespace Transports {
     _remote_edge->_incoming++;
   }
 
-  bool BufferEdge::Close(const QString& reason)
+  void BufferEdge::OnStop()
   {
-    if(!Edge::Close(reason)) {
-      return false;
-    }
+    Edge::OnStop();
 
     qDebug() << "Calling Close on " << ToString() << " with " << _incoming << " remaining messages.";
     if(!_rem_closing) {
@@ -56,23 +54,21 @@ namespace Transports {
     }
 
     if(_incoming == 0) {
-      CloseCompleted();
+      StopCompleted();
     }
-
-    return true;
   }
 
   void BufferEdge::DelayedReceive(const QByteArray &data)
   {
     _incoming--;
-    if(_closed) {
+    if(Stopped()) {
       if(_incoming == 0) {
         qDebug() << "No more messages on calling Edge::Close";
-        CloseCompleted();
+        StopCompleted();
       }
       return;
     }
-    PushData(data, this);
+    PushData(GetSharedPointer(), data);
   }
 }
 }

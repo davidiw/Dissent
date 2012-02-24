@@ -73,6 +73,11 @@ namespace Transports {
        */
       void SetAddress(const Address &address) { _local_address = address; }
 
+      /**
+       * Used to set a shared pointer on an Edge after it has been created
+       */
+      void SetSharedPointer(const QSharedPointer<Edge> &edge);
+
     protected slots:
       /**
        * Called when an edge is closed

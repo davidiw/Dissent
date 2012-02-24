@@ -28,24 +28,30 @@ namespace Tests {
     EXPECT_FALSE(meh0.edge->Outbound());
 
     RpcHandler rpc0;
-    meh0.edge->SetSink(&rpc0);
+    meh0.edge->SetSink(rpc0);
 
     TestRpc test0;
-    rpc0.Register(new RpcMethod<TestRpc>(&test0, &TestRpc::Add), "add");
+    QSharedPointer<RequestHandler> req_h(new RequestHandler());
+    QObject::connect(req_h.data(), SIGNAL(MakeRequestSignal(const Request &)),
+        &test0, SLOT(Add(const Request &)));
+    rpc0.Register("add", req_h);
 
     RpcHandler rpc1;
-    meh1.edge->SetSink(&rpc1);
+    meh1.edge->SetSink(rpc1);
 
-    TestRpcResponse test1;
-    RpcMethod<TestRpcResponse> cb = RpcMethod<TestRpcResponse>(&test1, &TestRpcResponse::HandleResponse);
+    TestResponse test1;
+    QSharedPointer<ResponseHandler> res_h(new ResponseHandler());
+    QObject::connect(res_h.data(),
+        SIGNAL(RequestCompleteSignal(const Response &)),
+        &test1, SLOT(HandleResponse(const Response &)));
 
-    RpcContainer request;
-    request["method"] = "add";
-    request["x"] = 3;
-    request["y"] = 6;
+    QVariantList data;
+    data.append(3);
+    data.append(6);
 
     EXPECT_EQ(0, test1.GetValue());
-    rpc1.SendRequest(request, meh1.edge.data(), &cb);
+    EXPECT_FALSE(test1.GetResponse().Successful());
+    rpc1.SendRequest(meh1.edge, "add", data, res_h);
 
     qint64 next = Timer::GetInstance().VirtualRun();
     while(next != -1) {
@@ -54,6 +60,7 @@ namespace Tests {
     }
 
     EXPECT_EQ(9, test1.GetValue());
+    EXPECT_TRUE(test1.GetResponse().Successful());
   }
 
   TEST(EdgeTest, BufferFail)
@@ -65,9 +72,10 @@ namespace Tests {
     be.Start();
     MockEdgeHandler meh(&be);
     SignalCounter sc;
-    QObject::connect(&be, SIGNAL(EdgeCreationFailure(const Address &, const QString &)),
-        &sc, SLOT(Counter()));
-
+    QObject::connect(&be,
+        SIGNAL(EdgeCreationFailure(const Address &, const QString &)),
+        &sc,
+        SLOT(Counter()));
 
     BufferAddress any;
     be.CreateEdgeTo(any);

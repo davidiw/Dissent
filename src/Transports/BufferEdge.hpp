@@ -28,7 +28,6 @@ namespace Transports {
        */
       virtual ~BufferEdge();
       virtual void Send(const QByteArray &data);
-      virtual bool Close(const QString& reason);
       
       /**
        * BufferEdges just pass memory around, this matches this edge with
@@ -45,7 +44,15 @@ namespace Transports {
       const int Delay;
 
     protected:
+      /**
+       * Returns true if the object isn't fully closed
+       */
       virtual bool RequiresCleanup() { return true; }
+
+      /**
+       * Called as a result of Stop has been called
+       */
+      virtual void OnStop();
 
     private:
       /**

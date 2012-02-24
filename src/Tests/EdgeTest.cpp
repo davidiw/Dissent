@@ -38,10 +38,8 @@ namespace Tests {
     meh1.edge->SetSink(rpc1);
 
     TestResponse test1;
-    QSharedPointer<ResponseHandler> res_h(new ResponseHandler());
-    QObject::connect(res_h.data(),
-        SIGNAL(RequestCompleteSignal(const Response &)),
-        &test1, SLOT(HandleResponse(const Response &)));
+    QSharedPointer<ResponseHandler> res_h(
+        new ResponseHandler(&test1, "HandleResponse"));
 
     QVariantList data;
     data.append(3);

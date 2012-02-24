@@ -25,10 +25,8 @@ namespace Tests {
     data.append(6);
 
     TestResponse test1;
-    QSharedPointer<ResponseHandler> res_h(new ResponseHandler());
-    QObject::connect(res_h.data(),
-        SIGNAL(RequestCompleteSignal(const Response &)),
-        &test1, SLOT(HandleResponse(const Response &)));
+    QSharedPointer<ResponseHandler> res_h(
+        new ResponseHandler(&test1, "HandleResponse"));
 
     EXPECT_EQ(0, test1.GetValue());
     rpc1.SendRequest(to_ms0, "add", data, res_h);

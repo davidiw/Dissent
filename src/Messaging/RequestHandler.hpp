@@ -3,10 +3,10 @@
 
 #include <QObject>
 
-#include "Request.hpp"
-
 namespace Dissent {
 namespace Messaging {
+  class Request;
+
   /**
    * Used to create a request callback, note this does NOT keep a pointer,
    * it internally uses slots and signals and func *must* be a valid slot.
@@ -15,6 +15,11 @@ namespace Messaging {
     Q_OBJECT
 
     public:
+      /**
+       * Constructor
+       * @param obj owner of the method
+       * @param func function name in the object
+       */
       RequestHandler(const QObject *obj, const char *func)
       {
         QString slot = QString::number(QSLOT_CODE) + func +

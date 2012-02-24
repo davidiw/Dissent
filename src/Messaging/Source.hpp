@@ -13,21 +13,35 @@ namespace Messaging {
   /**
    * Produces data to be received by a sink
    */
-  class Source {
+  class Source : public QObject {
+    Q_OBJECT
+
     public:
       /**
-       * Constructor
-       */
-      explicit Source();
-
-      /**
-       * Push data from this source into a sink return the old sink if
-       * one existed
+       * Push data from this source into a sink, this hides some of the
+       * nastiness associated w/ Qt slots and signals
        * @param sink the sink to push data into
        */
-      QSharedPointer<ISink> SetSink(const QSharedPointer<ISink> &sink);
+      void SetSink(const ISink &sink)
+      {
+        QObject::connect(this,
+            SIGNAL(PushDataSignal(const QSharedPointer<ISender> &,
+                const QByteArray &)),
+            &sink,
+            SLOT(HandleDataSlot(const QSharedPointer<ISender> &,
+                const QByteArray &)));
+      }
 
       virtual ~Source() {}
+
+    signals:
+      /**
+       * Pushes data into the sink
+       * @param from the remote sending party
+       * @param data the message
+       */
+      void PushDataSignal(const QSharedPointer<ISender> &from,
+          const QByteArray &data);
 
     protected:
       /**
@@ -36,13 +50,10 @@ namespace Messaging {
        * @param data the message
        */
       void PushData(const QSharedPointer<ISender> &from,
-          const QByteArray &data);
-
-    private:
-      /**
-       * Where to push data
-       */
-      QSharedPointer<ISink> _sink;
+          const QByteArray &data)
+      {
+        emit PushDataSignal(from, data);
+      }
   };
 }
 }

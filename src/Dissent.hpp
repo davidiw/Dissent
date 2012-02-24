@@ -78,7 +78,6 @@
 #include "Messaging/GetDataCallback.hpp" 
 #include "Messaging/ISender.hpp"
 #include "Messaging/ISink.hpp"
-#include "Messaging/InvisibleFilter.hpp"
 #include "Messaging/Request.hpp"
 #include "Messaging/RequestHandler.hpp"
 #include "Messaging/Response.hpp"

@@ -15,16 +15,10 @@ namespace Messaging {
    */
   class Filter : public Source, public ISender, public ISink {
     public:
-      Filter() :
-        _shared(this),
-        _weak(_shared.toWeakRef())
-      {
-      }
-
       inline virtual void HandleData(const QSharedPointer<ISender> &,
           const QByteArray &data)
       {
-        PushData(_weak.toStrongRef(), data);
+        PushData(GetSharedPointer(), data);
       }
 
       /**
@@ -32,18 +26,22 @@ namespace Messaging {
        */
       virtual ~Filter() {}
 
-      bool Shared() { return _shared == QSharedPointer<ISender>(); }
-
-      QSharedPointer<ISender> GetSharedPointer()
+      inline QSharedPointer<Filter> GetSharedPointer()
       {
-        QSharedPointer<ISender> shared = _shared;
-        _shared.clear();
-        return shared;
+        return _filter.toStrongRef();
+      }
+
+      virtual void SetSharedPointer(const QSharedPointer<Filter> &filter)
+      {
+        _filter = filter.toWeakRef();
       }
 
     private:
-      QSharedPointer<ISender> _shared;
-      QWeakPointer<ISender> _weak;
+      /**
+       * Needed for filter behavior
+       */
+      QWeakPointer<Filter> _filter;
+
   };
 }
 }

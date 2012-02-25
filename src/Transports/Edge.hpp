@@ -12,8 +12,6 @@
 
 namespace Dissent {
 namespace Transports {
-  class EdgeListener;
-
   /**
    * Stores the state for a transport layer link between two peers
    */
@@ -25,8 +23,6 @@ namespace Transports {
     Q_OBJECT
 
     public:
-      friend class EdgeListener;
-
       /**
        * Constructor
        * @param local the local address of the edge
@@ -89,6 +85,11 @@ namespace Transports {
 
       QString GetStopReason() const { return _stop_reason; }
 
+      void SetSharedPointer(const QSharedPointer<Edge> &edge)
+      {
+        _edge = edge.toWeakRef();
+      }
+
     signals:
       void StoppedSignal();
 
@@ -109,11 +110,6 @@ namespace Transports {
       virtual void OnStop();
 
     private:
-      void SetSharedPointer(const QSharedPointer<Edge> &edge)
-      {
-        _edge = edge.toWeakRef();
-      }
-
       QWeakPointer<Edge> _edge;
       const Address _local_address;
       const Address _remote_address;

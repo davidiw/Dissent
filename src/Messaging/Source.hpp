@@ -34,6 +34,11 @@ namespace Messaging {
         return old_sink;
       }
 
+      void Clear()
+      {
+        _sink = QSharedPointer<ISink>(new DummySink());
+      }
+
       virtual ~Source() {}
 
     protected:

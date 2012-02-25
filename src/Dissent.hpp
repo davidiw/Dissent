@@ -31,19 +31,23 @@
 #include "ClientServer/CSConnectionAcquirer.hpp"
 
 #include "Connections/Bootstrapper.hpp"
+*/
 #include "Connections/Connection.hpp"
 #include "Connections/ConnectionAcquirer.hpp"
 #include "Connections/ConnectionManager.hpp"
 #include "Connections/ConnectionTable.hpp"
+/*
 #include "Connections/DefaultNetwork.hpp"
 #include "Connections/EmptyNetwork.hpp"
 #include "Connections/FullyConnected.hpp"
+*/
 #include "Connections/Id.hpp"
+/*
 #include "Connections/Network.hpp"
 #include "Connections/RelayAddress.hpp"
 #include "Connections/RelayEdge.hpp"
 #include "Connections/RelayEdgeListener.hpp"
-
+*/
 #include "Crypto/AsymmetricKey.hpp"
 #include "Crypto/CppDiffieHellman.hpp"
 #include "Crypto/CppHash.hpp"
@@ -67,14 +71,14 @@
 #include "Crypto/OnionEncryptor.hpp"
 #include "Crypto/Serialization.hpp"
 #include "Crypto/ThreadedOnionEncryptor.hpp"
-
+/*
 #include "Identity/Credentials.hpp"
 #include "Identity/Group.hpp"
 #include "Identity/GroupHolder.hpp"
 */
 #include "Messaging/BufferSink.hpp"
 #include "Messaging/DummySink.hpp"
-//#include "Messaging/Filter.hpp"
+#include "Messaging/Filter.hpp"
 #include "Messaging/GetDataCallback.hpp" 
 #include "Messaging/ISender.hpp"
 #include "Messaging/ISink.hpp"
@@ -145,8 +149,10 @@ using namespace Dissent::Anonymity;
 using namespace Dissent::Anonymity::Tolerant;
 using namespace Dissent::Applications;
 using namespace Dissent::ClientServer;
+*/
 using namespace Dissent::Connections;
 using namespace Dissent::Crypto;
+/*
 using namespace Dissent::Identity;
 */
 using namespace Dissent::Messaging;

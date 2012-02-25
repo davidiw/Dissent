@@ -19,10 +19,37 @@ LIBS += -lcryptopp
 HEADERS += ext/joyent-http-parser/http_parser.h \
            ext/qt-json/json.h \
            src/Dissent.hpp \
+           src/Connections/Connection.hpp \
+           src/Connections/ConnectionAcquirer.hpp \
+           src/Connections/ConnectionManager.hpp \
+           src/Connections/ConnectionTable.hpp \
+           src/Connections/Id.hpp \
+           src/Crypto/AsymmetricKey.hpp \
+           src/Crypto/CppDiffieHellman.hpp \
+           src/Crypto/CppHash.hpp \
+           src/Crypto/CppIntegerData.hpp \
+           src/Crypto/CppLibrary.hpp \
+           src/Crypto/CppPrivateKey.hpp \
+           src/Crypto/CppPublicKey.hpp \
+           src/Crypto/CppRandom.hpp \
+           src/Crypto/CryptoFactory.hpp \
+           src/Crypto/DiffieHellman.hpp \
+           src/Crypto/NullDiffieHellman.hpp \
+           src/Crypto/Hash.hpp \
+           src/Crypto/Integer.hpp \
+           src/Crypto/IntegerData.hpp \
+           src/Crypto/NullHash.hpp \
+           src/Crypto/NullLibrary.hpp \
+           src/Crypto/NullPublicKey.hpp \
+           src/Crypto/NullPrivateKey.hpp \
+           src/Crypto/Library.hpp \
+           src/Crypto/OnionEncryptor.hpp \
+           src/Crypto/ThreadedOnionEncryptor.hpp \
+           src/Crypto/Serialization.hpp \
            src/Messaging/BufferSink.hpp \
            src/Messaging/DummySink.hpp \
+           src/Messaging/Filter.hpp \
            src/Messaging/GetDataCallback.hpp \
-           src/Messaging/InvisibleFilter.hpp \
            src/Messaging/ISender.hpp \
            src/Messaging/ISink.hpp \
            src/Messaging/Request.hpp \
@@ -62,6 +89,24 @@ HEADERS += ext/joyent-http-parser/http_parser.h \
 
 SOURCES += ext/joyent-http-parser/http_parser.c \
            ext/qt-json/json.cpp \
+           src/Connections/Connection.cpp \
+           src/Connections/ConnectionManager.cpp \
+           src/Connections/ConnectionTable.cpp \
+           src/Connections/Id.cpp \
+           src/Crypto/AsymmetricKey.cpp \
+           src/Crypto/CppDiffieHellman.cpp \
+           src/Crypto/CppHash.cpp \
+           src/Crypto/CppPrivateKey.cpp \
+           src/Crypto/CppPublicKey.cpp \
+           src/Crypto/CppRandom.cpp \
+           src/Crypto/CryptoFactory.cpp \
+           src/Crypto/DiffieHellman.cpp \
+           src/Crypto/NullDiffieHellman.cpp \
+           src/Crypto/NullHash.cpp \
+           src/Crypto/NullPublicKey.cpp \
+           src/Crypto/NullPrivateKey.cpp \
+           src/Crypto/OnionEncryptor.cpp \
+           src/Crypto/ThreadedOnionEncryptor.cpp \
            src/Messaging/RpcHandler.cpp \
            src/Transports/Address.cpp \
            src/Transports/AddressFactory.cpp \
@@ -113,6 +158,9 @@ HEADERS += ext/googletest/include/gtest/gtest-death-test.h \
            src/Tests/RpcTest.hpp
 
 SOURCES += ext/googletest/src/gtest-all.cc \
+           src/Tests/ConnectionTest.cpp \
            src/Tests/EdgeTest.cpp \
+           src/Tests/IdTest.cpp \
            src/Tests/MainTest.cpp \
-           src/Tests/RpcTest.cpp 
+           src/Tests/RpcTest.cpp \
+           src/Tests/TimeTest.cpp

@@ -20,15 +20,15 @@ namespace Tests {
     QSharedPointer<RequestHandler> req_h(new RequestHandler(&test0, "Add"));
     rpc0->Register("add", req_h);
 
-    QVariantList data;
-    data.append(3);
-    data.append(6);
-
     TestResponse test1;
     QSharedPointer<ResponseHandler> res_h(
         new ResponseHandler(&test1, "HandleResponse"));
 
     EXPECT_EQ(0, test1.GetValue());
+
+    QVariantList data;
+    data.append(3);
+    data.append(6);
     rpc1->SendRequest(to_ms0, "add", data, res_h);
     EXPECT_EQ(9, test1.GetValue());
     EXPECT_TRUE(test1.GetResponse().Successful());

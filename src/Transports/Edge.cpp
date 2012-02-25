@@ -30,6 +30,7 @@ namespace Transports {
 
   void Edge::OnStop()
   {
+    Clear();
     if(!RequiresCleanup()) {
       StopCompleted();
     }

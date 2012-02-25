@@ -2,7 +2,7 @@
 
 namespace Dissent {
 namespace Transports {
-  void EdgeFactory::AddEdgeListener(QSharedPointer<EdgeListener> el)
+  void EdgeFactory::AddEdgeListener(const QSharedPointer<EdgeListener> &el)
   {
     if(_type_to_el.contains(el->GetAddressType())) {
       qFatal("%s", QString("Attempting to create multiple EdgeListeners with the " 
@@ -21,7 +21,7 @@ namespace Transports {
     return false;
   }
 
-  QSharedPointer<EdgeListener> EdgeFactory::GetEdgeListener(QString type)
+  QSharedPointer<EdgeListener> EdgeFactory::GetEdgeListener(const QString &type)
   {
     return _type_to_el.value(type);
   }

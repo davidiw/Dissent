@@ -14,15 +14,15 @@ namespace Tests {
     public:
       explicit MockEdgeHandler(EdgeListener *el)
       {
-        QObject::connect(el, SIGNAL(NewEdge(QSharedPointer<Edge>)),
-            this, SLOT(HandleEdge(QSharedPointer<Edge>)));
+        QObject::connect(el, SIGNAL(NewEdge(const QSharedPointer<Edge> &)),
+            this, SLOT(HandleEdge(const QSharedPointer<Edge> &)));
       }
 
       virtual ~MockEdgeHandler() {}
       QSharedPointer<Edge> edge;
 
     private slots:
-      void HandleEdge(QSharedPointer<Edge> edge)
+      void HandleEdge(const QSharedPointer<Edge> &edge)
       {
         this->edge = edge;
       }

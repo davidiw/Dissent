@@ -16,8 +16,9 @@ namespace Messaging {
    */
   class Source {
     public:
-      Source() :
-        _sink(new DummySink())
+      Source(const QSharedPointer<ISink> sink =
+          QSharedPointer<ISink>(new DummySink())) :
+        _sink(sink)
       {
       }
 

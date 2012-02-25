@@ -1,6 +1,7 @@
 #ifndef DISSENT_MESSAGING_BUFFER_SINK_H_GUARD
 #define DISSENT_MESSAGING_BUFFER_SINK_H_GUARD
 
+#include <QObject>
 #include <QPair>
 #include <QVector>
 
@@ -11,7 +12,7 @@ namespace Messaging {
   /**
    * Handle asynchronous data input storage
    */
-  class BufferSink : public ISink {
+  class BufferSink : public QObject, public ISink {
     Q_OBJECT
 
     public:

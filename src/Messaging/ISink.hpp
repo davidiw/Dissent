@@ -2,7 +2,6 @@
 #define DISSENT_ISINK_H_GUARD
 
 #include <QByteArray>
-#include <QObject>
 #include <QSharedPointer>
 
 namespace Dissent {
@@ -12,9 +11,7 @@ namespace Messaging {
   /**
    * Handle asynchronous data input
    */
-  class ISink : public QObject {
-    Q_OBJECT
-
+  class ISink {
     public:
       /**
        * Handle incoming data from a source
@@ -28,18 +25,6 @@ namespace Messaging {
        * Virtual destructor...
        */
       virtual ~ISink() {}
-
-    public slots:
-      /**
-       * Handle incoming data from a source
-       * @param data message from the remote peer
-       * @param from a path way back to the remote sender
-       */
-      virtual void HandleDataSlot(const QSharedPointer<ISender> &from,
-          const QByteArray &data)
-      {
-        HandleData(from, data);
-      }
   };
 }
 }

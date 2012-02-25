@@ -27,14 +27,14 @@ namespace Tests {
     EXPECT_TRUE(meh1.edge->Outbound());
     EXPECT_FALSE(meh0.edge->Outbound());
 
-    RpcHandler rpc0;
+    QSharedPointer<RpcHandler> rpc0(new RpcHandler());
     meh0.edge->SetSink(rpc0);
 
     TestRpc test0;
     QSharedPointer<RequestHandler> req_h(new RequestHandler(&test0, "Add"));
-    rpc0.Register("add", req_h);
+    rpc0->Register("add", req_h);
 
-    RpcHandler rpc1;
+    QSharedPointer<RpcHandler> rpc1(new RpcHandler());
     meh1.edge->SetSink(rpc1);
 
     TestResponse test1;
@@ -47,7 +47,7 @@ namespace Tests {
 
     EXPECT_EQ(0, test1.GetValue());
     EXPECT_FALSE(test1.GetResponse().Successful());
-    rpc1.SendRequest(meh1.edge, "add", data, res_h);
+    rpc1->SendRequest(meh1.edge, "add", data, res_h);
 
     qint64 next = Timer::GetInstance().VirtualRun();
     while(next != -1) {

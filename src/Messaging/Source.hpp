@@ -4,6 +4,7 @@
 #include <QDebug>
 #include <QSharedPointer>
 
+#include "DummySink.hpp"
 #include "ISink.hpp"
 
 namespace Dissent {
@@ -13,35 +14,26 @@ namespace Messaging {
   /**
    * Produces data to be received by a sink
    */
-  class Source : public QObject {
-    Q_OBJECT
-
+  class Source {
     public:
+      Source() :
+        _sink(new DummySink())
+      {
+      }
+
       /**
-       * Push data from this source into a sink, this hides some of the
-       * nastiness associated w/ Qt slots and signals
+       * Push data from this source into a sink return the old sink if
+       * one existed
        * @param sink the sink to push data into
        */
-      void SetSink(const ISink &sink)
+      QSharedPointer<ISink> SetSink(const QSharedPointer<ISink> &sink)
       {
-        QObject::connect(this,
-            SIGNAL(PushDataSignal(const QSharedPointer<ISender> &,
-                const QByteArray &)),
-            &sink,
-            SLOT(HandleDataSlot(const QSharedPointer<ISender> &,
-                const QByteArray &)));
+        QSharedPointer<ISink> old_sink = _sink;
+        _sink = sink;
+        return old_sink;
       }
 
       virtual ~Source() {}
-
-    signals:
-      /**
-       * Pushes data into the sink
-       * @param from the remote sending party
-       * @param data the message
-       */
-      void PushDataSignal(const QSharedPointer<ISender> &from,
-          const QByteArray &data);
 
     protected:
       /**
@@ -49,11 +41,17 @@ namespace Messaging {
        * @param from the remote sending party
        * @param data the message
        */
-      void PushData(const QSharedPointer<ISender> &from,
+      inline void PushData(const QSharedPointer<ISender> &from,
           const QByteArray &data)
       {
-        emit PushDataSignal(from, data);
+        _sink->HandleData(from, data);
       }
+
+    private:
+      /**
+       * Where to push data
+       */
+      QSharedPointer<ISink> _sink;
   };
 }
 }

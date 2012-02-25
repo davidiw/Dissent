@@ -10,7 +10,8 @@ namespace Messaging {
    */
   class DummySink : public ISink {
     public:
-      virtual void HandleData(const QByteArray &, ISender *)
+      virtual void HandleData(const QSharedPointer<ISender> &,
+          const QByteArray &)
       {
       }
 

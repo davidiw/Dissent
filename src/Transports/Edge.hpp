@@ -1,6 +1,7 @@
 #ifndef DISSENT_TRANSPORTS_EDGE_H_GUARD
 #define DISSENT_TRANSPORTS_EDGE_H_GUARD
 
+#include <QObject>
 #include <QSharedPointer>
 
 #include "Messaging/ISender.hpp"
@@ -16,7 +17,8 @@ namespace Transports {
   /**
    * Stores the state for a transport layer link between two peers
    */
-  class Edge : public Dissent::Messaging::Source,
+  class Edge : public QObject,
+      public Dissent::Messaging::Source,
       public Dissent::Messaging::ISender,
       public Dissent::Utils::StartStop
   {

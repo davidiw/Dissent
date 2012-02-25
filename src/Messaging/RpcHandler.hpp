@@ -21,7 +21,7 @@ namespace Messaging {
   /**
    * Rpc mechanism assumes a reliable sending mechanism
    */
-  class RpcHandler : public ISink {
+  class RpcHandler : public QObject, public ISink {
     Q_OBJECT
 
     public:

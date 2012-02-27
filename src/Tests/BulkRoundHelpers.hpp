@@ -46,7 +46,7 @@ namespace Tests {
       virtual QByteArray GenerateXorMessage(int idx)
       { 
         if(_bad == -1) {
-          _bad = Random::GetInstance().GetInt(0, GetShuffleSink().Count());
+          _bad = Random::GetInstance().GetInt(0, GetShuffleSink()->Count());
         }
 
         QByteArray msg = BulkRound::GenerateXorMessage(idx);
@@ -79,7 +79,7 @@ namespace Tests {
       virtual QByteArray GenerateXorMessage(int idx)
       { 
         if(_bad == -1) {
-          _bad = Random::GetInstance().GetInt(0, GetShuffleSink().Count());
+          _bad = Random::GetInstance().GetInt(0, GetShuffleSink()->Count());
         }
 
         QByteArray msg = BulkRound::GenerateXorMessage(idx);

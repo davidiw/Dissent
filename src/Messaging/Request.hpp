@@ -15,9 +15,16 @@ namespace Messaging {
    */
   class Request {
     public:
-      Request(const QSharedPointer<RequestResponder> &responder,
-          const QSharedPointer<ISender> &from,
-          const QVariantList &container) :
+      /**
+       * Constructor -- allows empty constructions
+       * @param responder a callback object for the response
+       * @param from the sender of the request
+       * @param container the information about the request
+       */
+      Request(const QSharedPointer<RequestResponder> &responder =
+            QSharedPointer<RequestResponder>(),
+          const QSharedPointer<ISender> &from = QSharedPointer<ISender>(),
+          const QVariantList &container = QVariantList()) :
         _responder(responder),
         _from(from),
         _container(container)

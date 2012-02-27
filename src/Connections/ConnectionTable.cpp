@@ -10,6 +10,7 @@ namespace Connections {
   {
     if(local_id != Id::Zero()) {
       QSharedPointer<Connection> con(new NullConnection(local_id, local_id));
+      con->SetSharedPointer(con);
       QSharedPointer<Edge> edge = con->GetEdge();
       AddEdge(edge);
       AddConnection(con);

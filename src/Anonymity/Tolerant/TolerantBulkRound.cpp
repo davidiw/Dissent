@@ -6,7 +6,7 @@
 #include "Crypto/Hash.hpp"
 #include "Crypto/Library.hpp"
 #include "Crypto/Serialization.hpp"
-#include "Messaging/RpcRequest.hpp"
+#include "Messaging/Request.hpp"
 #include "Utils/QRunTimeError.hpp"
 #include "Utils/Random.hpp"
 #include "Utils/Serialization.hpp"
@@ -18,7 +18,6 @@ using Dissent::Connections::Connection;
 using Dissent::Crypto::CryptoFactory;
 using Dissent::Crypto::DiffieHellman;
 using Dissent::Crypto::Library;
-using Dissent::Messaging::RpcRequest;
 using Dissent::Utils::QRunTimeError;
 using Dissent::Utils::Random;
 using Dissent::Utils::Serialization;
@@ -42,6 +41,8 @@ namespace Tolerant {
     _crypto_lib(CryptoFactory::GetInstance().GetLibrary()),
     _hash_algo(_crypto_lib->GetHashAlgorithm()),
     _anon_signing_key(_crypto_lib->CreatePrivateKey()),
+    _key_shuffle_sink(new BufferSink()),
+    _blame_shuffle_sink(new BufferSink()),
     _phase(0),
     _user_messages(GetGroup().Count()),
     _server_messages(GetGroup().GetSubgroup().Count()),
@@ -54,7 +55,7 @@ namespace Tolerant {
     _user_alibi_data(GetGroup().Count(), GetGroup().GetSubgroup().Count()),
     _server_alibi_data(GetGroup().Count(), GetGroup().Count())
   {
-    Dissent::Messaging::RpcContainer headers = GetNetwork()->GetHeaders();
+    QVariantHash headers = GetNetwork()->GetHeaders();
     headers["round"] = Header_Bulk;
     GetNetwork()->SetHeaders(headers);
 
@@ -92,10 +93,9 @@ namespace Tolerant {
 
     Id sr_id(_hash_algo->ComputeHash(GetRoundId().GetByteArray()));
 
-    Round *pr = _create_shuffle(GetGroup(), GetCredentials(), sr_id,
+    _key_shuffle_round = _create_shuffle(GetGroup(), GetCredentials(), sr_id,
         net, _get_key_shuffle_data);
-    _key_shuffle_round = QSharedPointer<Round>(pr);
-    _key_shuffle_round->SetSink(&_key_shuffle_sink);
+    _key_shuffle_round->SetSink(_key_shuffle_sink);
 
     QObject::connect(_key_shuffle_round.data(), SIGNAL(Finished()),
         this, SLOT(KeyShuffleFinished()));
@@ -136,25 +136,32 @@ namespace Tolerant {
     }
   }
 
-  void TolerantBulkRound::IncomingData(RpcRequest &notification)
+  void TolerantBulkRound::IncomingData(const Request &notification)
   {
     if(Stopped()) {
-      qWarning() << "Received a message on a closed repeating bulk session:" << ToString();
+      qWarning() << "Received a message on a closed session:" << ToString();
       return;
     }
       
-    Dissent::Messaging::ISender *from = notification.GetFrom();
-    Connection *con = dynamic_cast<Connection *>(from);
-    const Id &id = con->GetRemoteId();
-    if(con == 0 || !GetGroup().Contains(id)) {
-      qDebug() << ToString() << " received wayward message from: " << from->ToString();
+    QSharedPointer<Connection> con = notification.GetFrom().dynamicCast<Connection>();
+    if(!con) {
+      qDebug() << ToString() << " received wayward message from: " <<
+        notification.GetFrom()->ToString();
       return;
     }
 
-    int round = notification.GetMessage()["round"].toInt();
+    const Id &id = con->GetRemoteId();
+    if(!GetGroup().Contains(id)) {
+      qDebug() << ToString() << " received wayward message from: " << 
+        notification.GetFrom()->ToString();
+      return;
+    }
+
+    QVariantHash msg = notification.GetData().toHash();
+    int round = msg.value("round").toInt();
     switch(round) {
       case Header_Bulk:
-        ProcessData(notification.GetMessage()["data"].toByteArray(), id);
+        ProcessData(id, msg.value("data").toByteArray());
         break;
       case Header_SigningKeyShuffle:
         qDebug() << "Signing key msg";
@@ -169,11 +176,11 @@ namespace Tolerant {
     }
   }
 
-  void TolerantBulkRound::ProcessData(const QByteArray &data, const Id &from)
+  void TolerantBulkRound::ProcessData(const Id &from, const QByteArray &data)
   {
     _log.Append(data, from);
     try {
-      ProcessDataBase(data, from);
+      ProcessDataBase(from, data);
     } catch (QRunTimeError &err) {
       qWarning() << _user_idx << GetLocalId().ToString() <<
         "received a message from" << GetGroup().GetIndex(from) << from.ToString() <<
@@ -184,10 +191,10 @@ namespace Tolerant {
     }
   }
 
-  void TolerantBulkRound::ProcessDataBase(const QByteArray &data, const Id &from)
+  void TolerantBulkRound::ProcessDataBase(const Id &from, const QByteArray &data)
   {
     QByteArray payload;
-    if(!Verify(data, payload, from)) {
+    if(!Verify(from, data, payload)) {
       throw QRunTimeError("Invalid signature or data");
     }
 
@@ -522,7 +529,7 @@ namespace Tolerant {
       } else { 
         QByteArray msg = ProcessMessage(tcleartext, slot_idx);
         if(!msg.isEmpty()) {
-          PushData(msg, this);
+          PushData(GetSharedPointer(), msg);
         }
       }
       msg_idx += length;
@@ -1410,14 +1417,14 @@ namespace Tolerant {
       return;
     }
 
-    if(_key_shuffle_sink.Count() != GetGroup().Count()) {
+    if(_key_shuffle_sink->Count() != GetGroup().Count()) {
       qWarning() << "Did not receive a descriptor from everyone.";
     }
 
-    uint count = static_cast<uint>(_key_shuffle_sink.Count());
+    uint count = static_cast<uint>(_key_shuffle_sink->Count());
     for(uint idx = 0; idx < count; idx++) {
-      QPair<QByteArray, ISender *> pair(_key_shuffle_sink.At(idx));
-      _slot_signing_keys.append(ParseSigningKey(pair.first));
+      QPair<QSharedPointer<ISender>, QByteArray> pair(_key_shuffle_sink->At(idx));
+      _slot_signing_keys.append(ParseSigningKey(pair.second));
       
       // Header fields in every slot
       _header_lengths.append(1  // shuffle byte
@@ -1430,7 +1437,7 @@ namespace Tolerant {
       // Everyone starts out with a zero-length message
       _message_lengths.append(0);
 
-      if(_key_shuffle_data == pair.first) {
+      if(_key_shuffle_data == pair.second) {
         _my_idx = idx;
       }
     }
@@ -1453,14 +1460,14 @@ namespace Tolerant {
 
     CreateBlameShuffle();
   
-    qDebug() << "Got" << _blame_shuffle_sink.Count() << "accusations";
+    qDebug() << "Got" << _blame_shuffle_sink->Count() << "accusations";
 
-    int count = _blame_shuffle_sink.Count();
+    int count = _blame_shuffle_sink->Count();
     QList<QPair<int,char> > accusations;
 
     // For each accusation
     for(int idx =0; idx<count; idx++) {
-      QByteArray msg = _blame_shuffle_sink.At(idx).first;
+      QByteArray msg = _blame_shuffle_sink->At(idx).second;
       QPair<int, char> pair;
     
       QByteArray acc_bytes = msg.mid(0, Accusation::AccusationByteLength);
@@ -1527,7 +1534,7 @@ namespace Tolerant {
     uint count = static_cast<uint>(_offline_log.Count());
     for(uint idx = 0; idx < count; idx++) {
       QPair<QByteArray, Id> entry = _offline_log.At(idx);
-      ProcessData(entry.first, entry.second);
+      ProcessData(entry.second, entry.first);
     }
 
     _offline_log.Clear();
@@ -1537,7 +1544,7 @@ namespace Tolerant {
   {
     QSharedPointer<Network> net(GetNetwork()->Clone());
 
-    Dissent::Messaging::RpcContainer headers = net->GetHeaders();
+    QVariantHash headers = net->GetHeaders();
     headers["round"] = Header_BlameShuffle;
 
     net->SetHeaders(headers);
@@ -1547,9 +1554,9 @@ namespace Tolerant {
     rid.append(_phase);
     Id sr_id(_hash_algo->ComputeHash(rid));
 
-    _blame_shuffle_round = QSharedPointer<Round>(_create_shuffle(GetGroup(), 
-          GetCredentials(), sr_id, net, _get_blame_shuffle_data));
-    _blame_shuffle_round->SetSink(&_blame_shuffle_sink);
+    _blame_shuffle_round = _create_shuffle(GetGroup(), 
+          GetCredentials(), sr_id, net, _get_blame_shuffle_data);
+    _blame_shuffle_round->SetSink(_blame_shuffle_sink);
 
     QObject::connect(_blame_shuffle_round.data(), SIGNAL(Finished()),
         this, SLOT(BlameShuffleFinished()));

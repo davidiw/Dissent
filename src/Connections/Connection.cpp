@@ -44,7 +44,7 @@ namespace Connections {
     if(edge == _edge.data()) {
       emit Disconnected(edge->GetStopReason());
     }
-    Clear();
+   Clear();
     _edge.clear();
   }
 }

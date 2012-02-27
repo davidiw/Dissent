@@ -12,6 +12,7 @@ namespace Transports {
 
   Edge::~Edge()
   {
+    _edge.clear();
   }
 
   QString Edge::ToString() const

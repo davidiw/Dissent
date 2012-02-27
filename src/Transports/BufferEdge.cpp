@@ -2,7 +2,7 @@
 
 using Dissent::Utils::TimerCallback;
 using Dissent::Utils::Timer;
-using Dissent::Utils::TimerMethod;
+using Dissent::Utils::TimerMethodShared;
 
 namespace Dissent {
 namespace Transports {
@@ -37,7 +37,8 @@ namespace Transports {
       return;
     }
 
-    TimerCallback *tm = new TimerMethod<BufferEdge, QByteArray>(_remote_edge.data(),
+    TimerCallback *tm = new TimerMethodShared<BufferEdge, QByteArray>(
+        _remote_edge.dynamicCast<BufferEdge>(),
         &BufferEdge::DelayedReceive, data);
     Timer::GetInstance().QueueCallback(tm, Delay);
     _remote_edge->_incoming++;
@@ -52,20 +53,12 @@ namespace Transports {
       _remote_edge->_rem_closing = true;
       _remote_edge.clear();
     }
-
-    if(_incoming == 0) {
-      StopCompleted();
-    }
   }
 
   void BufferEdge::DelayedReceive(const QByteArray &data)
   {
     _incoming--;
     if(Stopped()) {
-      if(_incoming == 0) {
-        qDebug() << "No more messages on calling Edge::Close";
-        StopCompleted();
-      }
       return;
     }
     PushData(GetSharedPointer(), data);

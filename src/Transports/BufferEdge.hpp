@@ -45,11 +45,6 @@ namespace Transports {
 
     protected:
       /**
-       * Returns true if the object isn't fully closed
-       */
-      virtual bool RequiresCleanup() { return true; }
-
-      /**
        * Called as a result of Stop has been called
        */
       virtual void OnStop();

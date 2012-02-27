@@ -88,10 +88,12 @@ HEADERS += ext/joyent-http-parser/http_parser.h \
            src/Messaging/GetDataCallback.hpp \
            src/Messaging/ISender.hpp \
            src/Messaging/ISink.hpp \
+           src/Messaging/Request.hpp \
+           src/Messaging/RequestResponder.hpp \
+           src/Messaging/RequestHandler.hpp \
+           src/Messaging/Response.hpp \
+           src/Messaging/ResponseHandler.hpp \
            src/Messaging/RpcHandler.hpp \
-           src/Messaging/RpcMethod.hpp \
-           src/Messaging/RpcRequest.hpp \
-           src/Messaging/RpcResponse.hpp \
            src/Messaging/SignalSink.hpp \
            src/Messaging/Source.hpp \
            src/Overlay/BaseOverlay.hpp \
@@ -145,7 +147,6 @@ HEADERS += ext/joyent-http-parser/http_parser.h \
            src/Web/Services/SessionIdService.hpp \
            src/Web/Services/SessionWebService.hpp \
            src/Web/Services/WebService.hpp 
-
 
 SOURCES += ext/joyent-http-parser/http_parser.c \
            ext/qt-json/json.cpp \
@@ -201,10 +202,7 @@ SOURCES += ext/joyent-http-parser/http_parser.c \
            src/Crypto/ThreadedOnionEncryptor.cpp \
            src/Identity/Group.cpp \
            src/Messaging/RpcHandler.cpp \
-           src/Messaging/RpcRequest.cpp \
-           src/Messaging/RpcResponse.cpp \
            src/Messaging/SignalSink.cpp \
-           src/Messaging/Source.cpp \
            src/Overlay/BaseOverlay.cpp \
            src/Overlay/BasicGossip.cpp \
            src/PeerReview/AcknowledgementLog.cpp \

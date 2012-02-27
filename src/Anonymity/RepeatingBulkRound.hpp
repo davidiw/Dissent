@@ -116,7 +116,7 @@ namespace Anonymity {
        * Handle a data message from a remote peer
        * @param notification message from a remote peer
        */
-      virtual void IncomingData(RpcRequest &notification);
+      virtual void IncomingData(const Request &notification);
 
       /**
        * Returns a list of members who have been blamed in the round
@@ -159,7 +159,7 @@ namespace Anonymity {
        * @param data Incoming data
        * @param from the remote peer sending the data
        */
-      virtual void ProcessData(const QByteArray &data, const Id &from);
+      virtual void ProcessData(const Id &from, const QByteArray &data);
 
       /**
        * This function does the hard work of processing data packets and throws
@@ -167,12 +167,15 @@ namespace Anonymity {
        * @param data Incoming data
        * @param from sending peer
        */
-      void ProcessDataBase(const QByteArray &data, const Id &from);
+      void ProcessDataBase(const Id &from, const QByteArray &data);
 
       /**
        * Returns the ShuffleSink to access serialized descriptors
        */
-      const BufferSink &GetShuffleSink() const { return _shuffle_sink; }
+      const QSharedPointer<BufferSink> GetShuffleSink() const
+      {
+        return _shuffle_sink;
+      }
 
       /**
        * Returns the parsed descriptors
@@ -329,7 +332,7 @@ namespace Anonymity {
       /**
        * Stores the output of the shuffle
        */
-      BufferSink _shuffle_sink;
+      QSharedPointer<BufferSink> _shuffle_sink;
 
       /**
        * Size determines by the accumulated length in the descriptors

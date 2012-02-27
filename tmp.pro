@@ -19,11 +19,34 @@ LIBS += -lcryptopp
 HEADERS += ext/joyent-http-parser/http_parser.h \
            ext/qt-json/json.h \
            src/Dissent.hpp \
+           src/Anonymity/BulkRound.hpp \
+           src/Anonymity/Log.hpp \
+           src/Anonymity/MessageRandomizer.hpp \
+           src/Anonymity/NullRound.hpp \
+           src/Anonymity/RepeatingBulkRound.hpp \
+           src/Anonymity/Round.hpp \
+           src/Anonymity/Session.hpp \
+           src/Anonymity/SessionManager.hpp \
+           src/Anonymity/ShuffleBlamer.hpp \
+           src/Anonymity/ShuffleRound.hpp \
+           src/Anonymity/ShuffleRoundBlame.hpp \
+           src/Anonymity/TrustedBulkRound.hpp \
+           src/Anonymity/Tolerant/Accusation.hpp \
+           src/Anonymity/Tolerant/AlibiData.hpp \
+           src/Anonymity/Tolerant/BlameMatrix.hpp \
+           src/Anonymity/Tolerant/Conflict.hpp \
+           src/Anonymity/Tolerant/MessageHistory.hpp \
+           src/Anonymity/Tolerant/TolerantBulkRound.hpp \
+           src/Anonymity/Tolerant/TolerantTreeRound.hpp \
            src/Connections/Connection.hpp \
            src/Connections/ConnectionAcquirer.hpp \
            src/Connections/ConnectionManager.hpp \
            src/Connections/ConnectionTable.hpp \
+           src/Connections/DefaultNetwork.hpp \
+           src/Connections/EmptyNetwork.hpp \
            src/Connections/Id.hpp \
+           src/Connections/Network.hpp \
+           src/Connections/RelayAddress.hpp \
            src/Crypto/AsymmetricKey.hpp \
            src/Crypto/CppDiffieHellman.hpp \
            src/Crypto/CppHash.hpp \
@@ -46,6 +69,9 @@ HEADERS += ext/joyent-http-parser/http_parser.h \
            src/Crypto/OnionEncryptor.hpp \
            src/Crypto/ThreadedOnionEncryptor.hpp \
            src/Crypto/Serialization.hpp \
+           src/Identity/Credentials.hpp \
+           src/Identity/Group.hpp \
+           src/Identity/GroupHolder.hpp \
            src/Messaging/BufferSink.hpp \
            src/Messaging/DummySink.hpp \
            src/Messaging/Filter.hpp \
@@ -89,10 +115,29 @@ HEADERS += ext/joyent-http-parser/http_parser.h \
 
 SOURCES += ext/joyent-http-parser/http_parser.c \
            ext/qt-json/json.cpp \
+           src/Anonymity/BulkRound.cpp \
+           src/Anonymity/Log.cpp \
+           src/Anonymity/MessageRandomizer.cpp \
+           src/Anonymity/NullRound.cpp \
+           src/Anonymity/RepeatingBulkRound.cpp \
+           src/Anonymity/Round.cpp \
+           src/Anonymity/Session.cpp \
+           src/Anonymity/SessionManager.cpp \
+           src/Anonymity/ShuffleBlamer.cpp \
+           src/Anonymity/ShuffleRound.cpp \
+           src/Anonymity/ShuffleRoundBlame.cpp \
+           src/Anonymity/TrustedBulkRound.cpp \
+           src/Anonymity/Tolerant/Accusation.cpp \
+           src/Anonymity/Tolerant/AlibiData.cpp \
+           src/Anonymity/Tolerant/BlameMatrix.cpp \
+           src/Anonymity/Tolerant/MessageHistory.cpp \
+           src/Anonymity/Tolerant/TolerantBulkRound.cpp \
+           src/Anonymity/Tolerant/TolerantTreeRound.cpp \
            src/Connections/Connection.cpp \
            src/Connections/ConnectionManager.cpp \
            src/Connections/ConnectionTable.cpp \
            src/Connections/Id.cpp \
+           src/Connections/RelayAddress.cpp \
            src/Crypto/AsymmetricKey.cpp \
            src/Crypto/CppDiffieHellman.cpp \
            src/Crypto/CppHash.cpp \
@@ -107,6 +152,7 @@ SOURCES += ext/joyent-http-parser/http_parser.c \
            src/Crypto/NullPrivateKey.cpp \
            src/Crypto/OnionEncryptor.cpp \
            src/Crypto/ThreadedOnionEncryptor.cpp \
+           src/Identity/Group.cpp \
            src/Messaging/RpcHandler.cpp \
            src/Transports/Address.cpp \
            src/Transports/AddressFactory.cpp \
@@ -150,17 +196,43 @@ HEADERS += ext/googletest/include/gtest/gtest-death-test.h \
            ext/googletest/include/gtest/internal/gtest-string.h \
            ext/googletest/include/gtest/internal/gtest-tuple.h \
            ext/googletest/include/gtest/internal/gtest-type-util.h \
+           src/Tests/BulkRoundHelpers.hpp \
            src/Tests/DissentTest.hpp \
            src/Tests/Mock.hpp \
            src/Tests/MockEdgeHandler.hpp \
            src/Tests/MockSender.hpp \
            src/Tests/MockSource.hpp \
-           src/Tests/RpcTest.hpp
+           src/Tests/RoundTest.hpp \
+           src/Tests/RpcTest.hpp \
+           src/Tests/ShuffleRoundHelpers.hpp \
+           src/Tests/TestNode.hpp \
+           src/Tests/TolerantBulkRoundHelpers.hpp \
+           src/Tests/TolerantTreeRoundHelpers.hpp
 
 SOURCES += ext/googletest/src/gtest-all.cc \
+           src/Tests/AddressTest.cpp \
+           src/Tests/BulkRoundTest.cpp \
            src/Tests/ConnectionTest.cpp \
+           src/Tests/Crypto.cpp \
            src/Tests/EdgeTest.cpp \
+           src/Tests/GroupTest.cpp \
+           src/Tests/HashTest.cpp \
            src/Tests/IdTest.cpp \
+           src/Tests/IntegerTest.cpp \
+           src/Tests/LogTest.cpp \
            src/Tests/MainTest.cpp \
+           src/Tests/MessageRandomizerTest.cpp \
+           src/Tests/NullRoundTest.cpp \
+           src/Tests/OnionTest.cpp \
+           src/Tests/RandomTest.cpp \
+           src/Tests/RepeatingBulkRoundTest.cpp \
+           src/Tests/RoundTest.cpp \
            src/Tests/RpcTest.cpp \
-           src/Tests/TimeTest.cpp
+           src/Tests/SerializationTest.cpp \
+           src/Tests/ShuffleRoundTest.cpp \
+           src/Tests/TestNode.cpp \
+           src/Tests/TimeTest.cpp \
+           src/Tests/TolerantBulkRoundTest.cpp \
+           src/Tests/TolerantTreeRoundTest.cpp \
+           src/Tests/TripleTest.cpp \
+           src/Tests/TrustedBulkRoundTest.cpp 

@@ -36,7 +36,8 @@ namespace Anonymity {
        * Constructor
        * @param rpc
        */
-      explicit SessionManager(const QSharedPointer<RpcHandler> &rpc);
+      explicit SessionManager(const QSharedPointer<RpcHandler> &rpc =
+          RpcHandler::GetEmpty());
 
       /**
        * Deconstructor

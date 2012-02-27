@@ -154,6 +154,18 @@ namespace Messaging {
     return true;
   }
 
+  bool RpcHandler::Register(const QString &name, const QObject *obj,
+      const char *method)
+  {
+    if(_callbacks.contains(name)) {
+      return false;
+    }
+
+    _callbacks[name] =
+      QSharedPointer<RequestHandler>(new RequestHandler(obj, method));
+    return true;
+  }
+
   bool RpcHandler::Unregister(const QString &name)
   {
     QSharedPointer<RequestHandler> cb = _callbacks.value(name);

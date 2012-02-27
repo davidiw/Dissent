@@ -82,7 +82,6 @@ HEADERS += ext/joyent-http-parser/http_parser.h \
            src/Identity/Group.hpp \
            src/Identity/GroupHolder.hpp \
            src/Messaging/BufferSink.hpp \
-           src/Messaging/BufferSinkWithSignal.hpp \
            src/Messaging/DummySink.hpp \
            src/Messaging/Filter.hpp \
            src/Messaging/GetDataCallback.hpp \

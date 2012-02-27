@@ -34,7 +34,8 @@ namespace Connections {
        * occur, defaults to -1
        */
       explicit RelayEdge(const Address &local, const Address &remote,
-          bool outbound, RpcHandler &rpc, ISender *forwarder,
+          bool outbound, const QSharedPointer<RpcHandler> &rpc,
+          const QSharedPointer<ISender> &forwarder,
           int local_edge_id, int remote_edge_id = -1);
 
       /**
@@ -74,8 +75,8 @@ namespace Connections {
       int GetRemoteEdgeId() { return _remote_edge_id; }
 
     private:
-      RpcHandler &_rpc;
-      ISender *_forwarder;
+      QSharedPointer<RpcHandler> _rpc;
+      QSharedPointer<ISender> _forwarder;
       int _local_edge_id;
       int _remote_edge_id;
   };

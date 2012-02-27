@@ -83,7 +83,7 @@
 #include "Messaging/ResponseHandler.hpp"
 #include "Messaging/RpcHandler.hpp"
 #include "Messaging/Source.hpp"
-/*
+
 #include "Overlay/BaseOverlay.hpp"
 #include "Overlay/BasicGossip.hpp"
 
@@ -94,7 +94,7 @@
 #include "PeerReview/PRManager.hpp"
 #include "PeerReview/ReceiveEntry.hpp"
 #include "PeerReview/SendEntry.hpp"
-*/
+
 #include "Transports/Address.hpp"
 #include "Transports/AddressFactory.hpp"
 #include "Transports/BufferAddress.hpp"
@@ -123,7 +123,7 @@
 #include "Utils/Triggerable.hpp"
 #include "Utils/Triple.hpp"
 #include "Utils/Utils.hpp"
-/*
+
 #include "Web/HttpRequest.hpp"
 #include "Web/HttpResponse.hpp"
 #include "Web/WebRequest.hpp"
@@ -138,7 +138,7 @@
 #include "Web/Services/SessionIdService.hpp"
 #include "Web/Services/SessionWebService.hpp"
 #include "Web/Services/WebService.hpp"
-*/
+
 using namespace Dissent::Anonymity;
 using namespace Dissent::Anonymity::Tolerant;
 using namespace Dissent::Applications;
@@ -150,10 +150,8 @@ using namespace Dissent::Messaging;
 using namespace Dissent::Overlay;
 using namespace Dissent::Transports;
 using namespace Dissent::Utils;
-/*
 using namespace Dissent::Web;
 using namespace Dissent::Web::Services;
 using namespace Dissent::Web::Packagers;
-*/
 
 #endif

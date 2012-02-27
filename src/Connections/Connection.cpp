@@ -40,12 +40,11 @@ namespace Connections {
 
   void Connection::HandleEdgeClose()
   {
+    Clear();
     Edge *edge = qobject_cast<Edge *>(sender());
     if(edge == _edge.data()) {
       emit Disconnected(edge->GetStopReason());
     }
-   Clear();
-    _edge.clear();
   }
 }
 }

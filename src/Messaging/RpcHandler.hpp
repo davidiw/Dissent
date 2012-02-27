@@ -25,6 +25,12 @@ namespace Messaging {
     Q_OBJECT
 
     public:
+      inline static QSharedPointer<RpcHandler> GetEmpty()
+      {
+        static QSharedPointer<RpcHandler> handler(new RpcHandler());
+        return handler;
+      }
+
       /**
        * The constructor
        */
@@ -71,6 +77,14 @@ namespace Messaging {
        */
       bool Register(const QString &name,
           const QSharedPointer<RequestHandler> &cb);
+
+      /**
+       * Register a callback into the specified object
+       * @param name The string to match it with
+       * @param obj with the method name
+       */
+      bool Register(const QString &name, const QObject *obj,
+          const char *method);
 
       /**
        * Unregister a callback

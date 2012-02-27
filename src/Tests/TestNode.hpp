@@ -28,7 +28,10 @@ namespace Tests {
         be->Start();
       }
 
-      virtual ~TestNode() {}
+      virtual ~TestNode()
+      {
+        sink->Clear();
+      }
 
       QSharedPointer<RpcHandler> rpc;
       QSharedPointer<ConnectionManager> cm;

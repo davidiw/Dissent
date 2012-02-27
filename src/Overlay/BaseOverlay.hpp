@@ -56,17 +56,23 @@ namespace Overlay {
       /**
        * Returns the RpcHandler for the member
        */
-      inline RpcHandler &GetRpcHandler() { return _rpc; }
+      inline QSharedPointer<RpcHandler> GetRpcHandler() { return _rpc; }
 
       /**
        * Returns the ConnectionTable associated with outbound connections
        */
-      inline ConnectionTable &GetConnectionTable() { return _cm.GetConnectionTable(); }
+      inline ConnectionTable &GetConnectionTable()
+      {
+        return _cm->GetConnectionTable();
+      }
 
       /**
        * Returns the connection underlying connection manager
        */
-      inline ConnectionManager &GetConnectionManager() { return _cm; }
+      inline QSharedPointer<ConnectionManager> GetConnectionManager()
+      {
+        return _cm;
+      }
 
       /**
        * Returns the nodes Id
@@ -87,15 +93,15 @@ namespace Overlay {
     protected:
       virtual void OnStart();
       virtual void OnStop();
-      void AddConnectionAcquirer(QSharedPointer<ConnectionAcquirer> ca);
+      void AddConnectionAcquirer(const QSharedPointer<ConnectionAcquirer> &ca);
 
     private:
       QList<Address> _local_endpoints;
       QList<Address> _remote_endpoints;
 
       Id _local_id;
-      RpcHandler _rpc;
-      ConnectionManager _cm;
+      QSharedPointer<RpcHandler> _rpc;
+      QSharedPointer<ConnectionManager> _cm;
 
       QList<QSharedPointer<ConnectionAcquirer> > _con_acquirers;
 

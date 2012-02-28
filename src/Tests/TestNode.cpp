@@ -33,7 +33,7 @@ namespace Tests {
     }
 
     for(int idx = 0; idx < count; idx++) {
-      EXPECT_TRUE(nodes[idx]->sink->Count() == 0);
+      EXPECT_TRUE(nodes[idx]->sink.Count() == 0);
       for(int jdx = 0; jdx < count; jdx++) {
         if(idx == jdx) {
           continue;
@@ -70,7 +70,7 @@ namespace Tests {
     }
     QSharedPointer<Session> session(callback(node, group, session_id));
     node->session = session;
-    session->SetSink(node->sink);
+    session->SetSink(&node->sink);
     node->sm.AddSession(node->session);
     QObject::connect(session.data(), SIGNAL(RoundFinished(QSharedPointer<Round>)),
         node, SLOT(HandleRoundFinished(QSharedPointer<Round>)));

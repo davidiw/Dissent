@@ -41,8 +41,6 @@ namespace Tolerant {
     _crypto_lib(CryptoFactory::GetInstance().GetLibrary()),
     _hash_algo(_crypto_lib->GetHashAlgorithm()),
     _anon_signing_key(_crypto_lib->CreatePrivateKey()),
-    _key_shuffle_sink(new BufferSink()),
-    _blame_shuffle_sink(new BufferSink()),
     _phase(0),
     _user_messages(GetGroup().Count()),
     _server_messages(GetGroup().GetSubgroup().Count()),
@@ -95,7 +93,7 @@ namespace Tolerant {
 
     _key_shuffle_round = _create_shuffle(GetGroup(), GetCredentials(), sr_id,
         net, _get_key_shuffle_data);
-    _key_shuffle_round->SetSink(_key_shuffle_sink);
+    _key_shuffle_round->SetSink(&_key_shuffle_sink);
 
     QObject::connect(_key_shuffle_round.data(), SIGNAL(Finished()),
         this, SLOT(KeyShuffleFinished()));
@@ -1417,13 +1415,13 @@ namespace Tolerant {
       return;
     }
 
-    if(_key_shuffle_sink->Count() != GetGroup().Count()) {
+    if(_key_shuffle_sink.Count() != GetGroup().Count()) {
       qWarning() << "Did not receive a descriptor from everyone.";
     }
 
-    uint count = static_cast<uint>(_key_shuffle_sink->Count());
+    uint count = static_cast<uint>(_key_shuffle_sink.Count());
     for(uint idx = 0; idx < count; idx++) {
-      QPair<QSharedPointer<ISender>, QByteArray> pair(_key_shuffle_sink->At(idx));
+      QPair<QSharedPointer<ISender>, QByteArray> pair(_key_shuffle_sink.At(idx));
       _slot_signing_keys.append(ParseSigningKey(pair.second));
       
       // Header fields in every slot
@@ -1460,14 +1458,14 @@ namespace Tolerant {
 
     CreateBlameShuffle();
   
-    qDebug() << "Got" << _blame_shuffle_sink->Count() << "accusations";
+    qDebug() << "Got" << _blame_shuffle_sink.Count() << "accusations";
 
-    int count = _blame_shuffle_sink->Count();
+    int count = _blame_shuffle_sink.Count();
     QList<QPair<int,char> > accusations;
 
     // For each accusation
     for(int idx =0; idx<count; idx++) {
-      QByteArray msg = _blame_shuffle_sink->At(idx).second;
+      QByteArray msg = _blame_shuffle_sink.At(idx).second;
       QPair<int, char> pair;
     
       QByteArray acc_bytes = msg.mid(0, Accusation::AccusationByteLength);
@@ -1556,7 +1554,7 @@ namespace Tolerant {
 
     _blame_shuffle_round = _create_shuffle(GetGroup(), 
           GetCredentials(), sr_id, net, _get_blame_shuffle_data);
-    _blame_shuffle_round->SetSink(_blame_shuffle_sink);
+    _blame_shuffle_round->SetSink(&_blame_shuffle_sink);
 
     QObject::connect(_blame_shuffle_round.data(), SIGNAL(Finished()),
         this, SLOT(BlameShuffleFinished()));

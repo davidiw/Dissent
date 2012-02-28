@@ -66,11 +66,6 @@ namespace Transports {
        * The Remote side is closing...
        */
       bool _rem_closing;
-
-      /**
-       * Packets sent but not arrived
-       */
-      int _incoming;
   };
 }
 }

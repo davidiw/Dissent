@@ -9,7 +9,7 @@ namespace Transports {
   BufferEdge::BufferEdge(const Address &local, const Address &remote,
       bool outgoing, int delay) :
     Edge(local, remote, outgoing), Delay(delay), _remote_edge(0),
-    _rem_closing(false), _incoming(0)
+    _rem_closing(false)
   {
   }
 
@@ -41,23 +41,19 @@ namespace Transports {
         _remote_edge.dynamicCast<BufferEdge>(),
         &BufferEdge::DelayedReceive, data);
     Timer::GetInstance().QueueCallback(tm, Delay);
-    _remote_edge->_incoming++;
   }
 
   void BufferEdge::OnStop()
   {
-    Edge::OnStop();
-
-    qDebug() << "Calling Close on " << ToString() << " with " << _incoming << " remaining messages.";
     if(!_rem_closing) {
       _remote_edge->_rem_closing = true;
       _remote_edge.clear();
     }
+    Edge::OnStop();
   }
 
   void BufferEdge::DelayedReceive(const QByteArray &data)
   {
-    _incoming--;
     if(Stopped()) {
       return;
     }

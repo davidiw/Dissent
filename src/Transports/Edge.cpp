@@ -12,7 +12,6 @@ namespace Transports {
 
   Edge::~Edge()
   {
-    _edge.clear();
   }
 
   QString Edge::ToString() const
@@ -31,7 +30,6 @@ namespace Transports {
 
   void Edge::OnStop()
   {
-    Clear();
     if(!RequiresCleanup()) {
       StopCompleted();
     }

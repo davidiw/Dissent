@@ -61,6 +61,7 @@ namespace Connections {
 
     QSharedPointer<RelayEdge> redge(new RelayEdge(GetAddress(),
           RelayAddress(id), true, _rpc, forwarder, edge_id));
+    redge->SetSharedPointer(redge);
     _edges[edge_id] = redge;
     msg["x_edge_id"] = edge_id;
 
@@ -117,6 +118,7 @@ namespace Connections {
     QSharedPointer<RelayEdge> redge(new RelayEdge(GetAddress(),
           RelayAddress(remote_peer), false, _rpc,
           request.GetFrom(), y_edge_id, x_edge_id));
+    redge->SetSharedPointer(redge);
 
     _edges[y_edge_id] = redge;
     QVariantHash response;

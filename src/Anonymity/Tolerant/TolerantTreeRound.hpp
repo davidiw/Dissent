@@ -478,7 +478,7 @@ namespace Tolerant {
       /**
        * Stores the output of the shuffle
        */
-      QSharedPointer<BufferSink> _key_shuffle_sink;
+      BufferSink _key_shuffle_sink;
 
       /**
        * Size determines by the accumulated length in the descriptors

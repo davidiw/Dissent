@@ -12,7 +12,7 @@
 #include "Identity/Credentials.hpp"
 #include "Messaging/GetDataCallback.hpp"
 #include "Messaging/ISender.hpp"
-#include "Messaging/Source.hpp"
+#include "Messaging/SourceObject.hpp"
 #include "Utils/StartStop.hpp"
 
 namespace Dissent {
@@ -33,21 +33,23 @@ namespace Anonymity {
   /**
    * An anonymous exchange amongst peers of a static group.
    */
-  class Round : public QObject, public Dissent::Utils::StartStop,
-      public Dissent::Messaging::Source, public Dissent::Messaging::ISender {
+  class Round : public Messaging::SourceObject,
+      public Utils::StartStop,
+      public Messaging::ISender
+  {
     Q_OBJECT
 
     public:
-      typedef Dissent::Connections::Connection Connection;
-      typedef Dissent::Connections::Id Id;
-      typedef Dissent::Connections::Network Network;
-      typedef Dissent::Crypto::AsymmetricKey AsymmetricKey;
-      typedef Dissent::Crypto::DiffieHellman DiffieHellman;
-      typedef Dissent::Identity::Credentials Credentials;
-      typedef Dissent::Identity::Group Group;
-      typedef Dissent::Identity::GroupContainer GroupContainer;
-      typedef Dissent::Messaging::GetDataCallback GetDataCallback;
-      typedef Dissent::Messaging::Request Request;
+      typedef Connections::Connection Connection;
+      typedef Connections::Id Id;
+      typedef Connections::Network Network;
+      typedef Crypto::AsymmetricKey AsymmetricKey;
+      typedef Crypto::DiffieHellman DiffieHellman;
+      typedef Identity::Credentials Credentials;
+      typedef Identity::Group Group;
+      typedef Identity::GroupContainer GroupContainer;
+      typedef Messaging::GetDataCallback GetDataCallback;
+      typedef Messaging::Request Request;
 
       /**
        * Constructor
@@ -259,15 +261,15 @@ namespace Anonymity {
   };
 
   typedef QSharedPointer<Round> (*CreateRound)(const Round::Group &,
-      const Round::Credentials &, const Dissent::Connections::Id &,
-      QSharedPointer<Dissent::Connections::Network>,
-      Dissent::Messaging::GetDataCallback &get_data_cb);
+      const Round::Credentials &, const Connections::Id &,
+      QSharedPointer<Connections::Network>,
+      Messaging::GetDataCallback &get_data_cb);
 
   template <typename T> QSharedPointer<Round> TCreateRound(
       const Round::Group &group, const Round::Credentials &creds,
-      const Dissent::Connections::Id &round_id,
-      QSharedPointer<Dissent::Connections::Network> network,
-      Dissent::Messaging::GetDataCallback &get_data)
+      const Connections::Id &round_id,
+      QSharedPointer<Connections::Network> network,
+      Messaging::GetDataCallback &get_data)
   {
     QSharedPointer<T> round(new T(group, creds, round_id, network, get_data));
     round->SetSharedPointer(round);

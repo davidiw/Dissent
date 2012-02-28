@@ -5,7 +5,7 @@
 #include <QObject>
 #include <QSharedPointer>
 
-#include "Messaging/Filter.hpp"
+#include "Messaging/FilterObject.hpp"
 #include "Transports/Edge.hpp"
 
 #include "Id.hpp"
@@ -16,11 +16,11 @@ namespace Connections {
    * A container class linking a global identifier to a transport layer
    * identifier, takes ownership of an Edge, SetSink externally (for now)
    */
-  class Connection : public QObject, public Dissent::Messaging::Filter {
+  class Connection : public Messaging::FilterObject {
     Q_OBJECT
 
     public:
-      typedef Dissent::Transports::Edge Edge;
+      typedef Transports::Edge Edge;
 
       /**
        * Constructor

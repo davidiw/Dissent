@@ -84,9 +84,11 @@ HEADERS += ext/joyent-http-parser/http_parser.h \
            src/Messaging/BufferSink.hpp \
            src/Messaging/DummySink.hpp \
            src/Messaging/Filter.hpp \
+           src/Messaging/FilterObject.hpp \
            src/Messaging/GetDataCallback.hpp \
            src/Messaging/ISender.hpp \
            src/Messaging/ISink.hpp \
+           src/Messaging/ISinkObject.hpp \
            src/Messaging/Request.hpp \
            src/Messaging/RequestResponder.hpp \
            src/Messaging/RequestHandler.hpp \
@@ -95,6 +97,7 @@ HEADERS += ext/joyent-http-parser/http_parser.h \
            src/Messaging/RpcHandler.hpp \
            src/Messaging/SignalSink.hpp \
            src/Messaging/Source.hpp \
+           src/Messaging/SourceObject.hpp \
            src/Overlay/BaseOverlay.hpp \
            src/Overlay/BasicGossip.hpp \
            src/PeerReview/Acknowledgement.hpp \

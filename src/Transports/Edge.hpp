@@ -5,7 +5,7 @@
 #include <QSharedPointer>
 
 #include "Messaging/ISender.hpp"
-#include "Messaging/Source.hpp"
+#include "Messaging/SourceObject.hpp"
 #include "Utils/StartStop.hpp"
 
 #include "Address.hpp"
@@ -15,10 +15,8 @@ namespace Transports {
   /**
    * Stores the state for a transport layer link between two peers
    */
-  class Edge : public QObject,
-      public Dissent::Messaging::Source,
-      public Dissent::Messaging::ISender,
-      public Dissent::Utils::StartStop
+  class Edge : public Messaging::SourceObject, public Messaging::ISender,
+      public Utils::StartStop
   {
     Q_OBJECT
 

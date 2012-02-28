@@ -34,7 +34,7 @@ namespace Connections {
     _rpc->Register("CM::Disconnect", disconnect);
 
     QSharedPointer<Connection> con = _con_tab.GetConnection(_local_id);
-    con->SetSink(_rpc);
+    con->SetSink(_rpc.data());
     QObject::connect(con->GetEdge().data(), SIGNAL(StoppedSignal()),
         this, SLOT(HandleEdgeClose()));
 
@@ -116,7 +116,7 @@ namespace Connections {
   void ConnectionManager::HandleNewEdge(const QSharedPointer<Edge> &edge)
   {
     _con_tab.AddEdge(edge);
-    edge->SetSink(_rpc);
+    edge->SetSink(_rpc.data());
 
     QObject::connect(edge.data(), SIGNAL(StoppedSignal()),
         this, SLOT(HandleEdgeClose()));
@@ -362,6 +362,8 @@ namespace Connections {
     if(!Stopped()) {
       return;
     }
+
+    _con_tab.PrintConnectionTable();
 
     if(_con_tab.GetEdges().count() == 0) {
       emit Disconnected();

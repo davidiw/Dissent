@@ -9,6 +9,8 @@ namespace Connections {
     _local_id(local_id),
     _remote_id(remote_id)
   {
+    ISink *sink = _edge->SetSink(this);
+    SetSink(sink);
     QObject::connect(_edge.data(), SIGNAL(StoppedSignal()),
         this, SLOT(HandleEdgeClose()));
   }
@@ -16,8 +18,6 @@ namespace Connections {
   void Connection::SetSharedPointer(const QSharedPointer<Filter> &filter)
   {
     Filter::SetSharedPointer(filter);
-    QSharedPointer<ISink> sink = _edge->SetSink(GetSharedPointer());
-    SetSink(sink);
   }
 
   QString Connection::ToString() const
@@ -40,7 +40,6 @@ namespace Connections {
 
   void Connection::HandleEdgeClose()
   {
-    Clear();
     Edge *edge = qobject_cast<Edge *>(sender());
     if(edge == _edge.data()) {
       emit Disconnected(edge->GetStopReason());

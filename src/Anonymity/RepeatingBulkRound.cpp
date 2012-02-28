@@ -32,7 +32,6 @@ namespace Anonymity {
     Round(group, creds, round_id, network, get_data),
     _get_shuffle_data(this, &RepeatingBulkRound::GetShuffleData),
     _state(Offline),
-    _shuffle_sink(new BufferSink()),
     _phase(0),
     _stop_next(false)
   {
@@ -53,7 +52,7 @@ namespace Anonymity {
 
     _shuffle_round = create_shuffle(GetGroup(), GetCredentials(), sr_id, net,
         _get_shuffle_data);
-    _shuffle_round->SetSink(_shuffle_sink);
+    _shuffle_round->SetSink(&_shuffle_sink);
 
     QObject::connect(_shuffle_round.data(), SIGNAL(Finished()),
         this, SLOT(ShuffleFinished()));
@@ -391,13 +390,13 @@ namespace Anonymity {
       return;
     }
 
-    if(_shuffle_sink->Count() != GetGroup().Count()) {
+    if(_shuffle_sink.Count() != GetGroup().Count()) {
       qWarning() << "Did not receive a descriptor from everyone.";
     }
 
-    uint count = static_cast<uint>(_shuffle_sink->Count());
+    uint count = static_cast<uint>(_shuffle_sink.Count());
     for(uint idx = 0; idx < count; idx++) {
-      QPair<QSharedPointer<ISender>, QByteArray> pair(_shuffle_sink->At(idx));
+      QPair<QSharedPointer<ISender>, QByteArray> pair(_shuffle_sink.At(idx));
       _descriptors.append(ParseDescriptor(pair.second));
       _header_lengths.append(8 + (_descriptors.last().second->GetKeySize() / 8));
       _message_lengths.append(0);

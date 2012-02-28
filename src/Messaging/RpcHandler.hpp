@@ -9,7 +9,7 @@
 #include <QSharedPointer>
 
 #include "ISender.hpp"
-#include "ISink.hpp"
+#include "ISinkObject.hpp"
 #include "Request.hpp"
 #include "RequestHandler.hpp"
 #include "RequestResponder.hpp"
@@ -21,7 +21,7 @@ namespace Messaging {
   /**
    * Rpc mechanism assumes a reliable sending mechanism
    */
-  class RpcHandler : public QObject, public ISink {
+  class RpcHandler : public ISinkObject {
     Q_OBJECT
 
     public:

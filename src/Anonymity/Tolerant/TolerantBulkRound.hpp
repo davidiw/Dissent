@@ -644,12 +644,12 @@ namespace Tolerant {
       /**
        * Stores the output of the shuffle
        */
-      QSharedPointer<BufferSink> _key_shuffle_sink;
+      BufferSink _key_shuffle_sink;
 
       /**
        * Stores the output of the blame shuffle
        */
-      QSharedPointer<BufferSink> _blame_shuffle_sink;
+      BufferSink _blame_shuffle_sink;
 
       /**
        * Size determines by the accumulated length in the descriptors

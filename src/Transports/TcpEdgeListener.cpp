@@ -165,8 +165,7 @@ namespace Transports {
     }
 
     // deleteLater since a socket may potentially be closed during a read operation
-    QSharedPointer<Edge> edge(new TcpEdge(GetAddress(), remote, outgoing, socket),
-        &QObject::deleteLater);
+    QSharedPointer<Edge> edge(new TcpEdge(GetAddress(), remote, outgoing, socket));
     SetSharedPointer(edge);
     ProcessNewEdge(edge);
   }

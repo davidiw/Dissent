@@ -21,6 +21,8 @@ namespace Messaging {
       virtual void HandleData(const QSharedPointer<ISender> &from,
           const QByteArray &data) = 0;
 
+      virtual const QObject *GetObject() = 0;
+
       /**
        * Virtual destructor...
        */

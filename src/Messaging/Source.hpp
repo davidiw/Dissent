@@ -1,10 +1,9 @@
 #ifndef DISSENT_SOURCE_H_GUARD
 #define DISSENT_SOURCE_H_GUARD
 
-#include <QDebug>
+#include <QObject>
 #include <QSharedPointer>
 
-#include "DummySink.hpp"
 #include "ISink.hpp"
 
 namespace Dissent {
@@ -16,9 +15,7 @@ namespace Messaging {
    */
   class Source {
     public:
-      Source(const QSharedPointer<ISink> sink =
-          QSharedPointer<ISink>(new DummySink())) :
-        _sink(sink)
+      explicit Source()
       {
       }
 
@@ -27,16 +24,9 @@ namespace Messaging {
        * one existed
        * @param sink the sink to push data into
        */
-      QSharedPointer<ISink> SetSink(const QSharedPointer<ISink> &sink)
+      ISink *SetSink(ISink *sink)
       {
-        QSharedPointer<ISink> old_sink = _sink;
-        _sink = sink;
-        return old_sink;
-      }
-
-      void Clear()
-      {
-        _sink = QSharedPointer<ISink>(new DummySink());
+        return GetSource()->SetSink(sink);
       }
 
       virtual ~Source() {}
@@ -47,17 +37,14 @@ namespace Messaging {
        * @param from the remote sending party
        * @param data the message
        */
-      inline void PushData(const QSharedPointer<ISender> &from,
+      inline virtual void PushData(const QSharedPointer<ISender> &from,
           const QByteArray &data)
       {
-        _sink->HandleData(from, data);
+        GetSource()->PushData(from, data);
       }
 
     private:
-      /**
-       * Where to push data
-       */
-      QSharedPointer<ISink> _sink;
+      virtual Source *GetSource() = 0;
   };
 }
 }

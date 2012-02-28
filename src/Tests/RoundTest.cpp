@@ -27,7 +27,7 @@ namespace Tests {
     }
 
     for(int idx = 0; idx < count; idx++) {
-      ASSERT_TRUE(nodes[idx]->sink->Count() == 0);
+      ASSERT_TRUE(nodes[idx]->sink.Count() == 0);
     }
 
     ASSERT_EQ(TestNode::success, count);
@@ -58,7 +58,7 @@ namespace Tests {
 
     SignalCounter sc;
     for(int idx = 0; idx < count; idx++) {
-      QObject::connect(nodes[idx]->sink.data(), SIGNAL(DataReceived()), &sc, SLOT(Counter()));
+      QObject::connect(&nodes[idx]->sink, SIGNAL(DataReceived()), &sc, SLOT(Counter()));
       nodes[idx]->session->Start();
     }
 
@@ -70,9 +70,9 @@ namespace Tests {
     }
 
     for(int idx = 0; idx < count; idx++) {
-      EXPECT_EQ(nodes[idx]->sink->Count(), 1);
-      if(nodes[idx]->sink->Count()) {
-        EXPECT_EQ(msg, nodes[idx]->sink->Last().second);
+      EXPECT_EQ(nodes[idx]->sink.Count(), 1);
+      if(nodes[idx]->sink.Count()) {
+        EXPECT_EQ(msg, nodes[idx]->sink.Last().second);
       }
     }
 
@@ -107,7 +107,7 @@ namespace Tests {
 
     SignalCounter sc;
     for(int idx = 0; idx < count; idx++) {
-      QObject::connect(nodes[idx]->sink.data(), SIGNAL(DataReceived()),
+      QObject::connect(&nodes[idx]->sink, SIGNAL(DataReceived()),
           &sc, SLOT(Counter()));
       nodes[idx]->session->Start();
     }
@@ -120,7 +120,7 @@ namespace Tests {
     }
 
     for(int idx = 0; idx < count; idx++) {
-      ASSERT_EQ(msg, nodes[idx]->sink->Last().second);
+      ASSERT_EQ(msg, nodes[idx]->sink.Last().second);
     }
 
     for(int idx = 0; idx < count; idx++) {
@@ -156,7 +156,7 @@ namespace Tests {
 
     SignalCounter sc;
     for(int idx = 0; idx < count; idx++) {
-      QObject::connect(nodes[idx]->sink.data(), SIGNAL(DataReceived()),
+      QObject::connect(&nodes[idx]->sink, SIGNAL(DataReceived()),
           &sc, SLOT(Counter()));
       nodes[idx]->session->Start();
     }
@@ -171,9 +171,9 @@ namespace Tests {
     sc.Reset();
 
     for(int idx = 0; idx < count; idx++) {
-      EXPECT_TRUE(nodes[idx]->sink->Count());
-      if(nodes[idx]->sink->Count()) {
-        EXPECT_EQ(msg, nodes[idx]->sink->Last().second);
+      EXPECT_TRUE(nodes[idx]->sink.Count());
+      if(nodes[idx]->sink.Count()) {
+        EXPECT_EQ(msg, nodes[idx]->sink.Last().second);
       }
     }
 
@@ -188,7 +188,7 @@ namespace Tests {
     }
 
     for(int idx = 0; idx < count; idx++) {
-      EXPECT_EQ(msg, nodes[idx]->sink->Last().second);
+      EXPECT_EQ(msg, nodes[idx]->sink.Last().second);
     }
 
     CleanUp(nodes);
@@ -223,7 +223,7 @@ namespace Tests {
 
     SignalCounter sc;
     for(int idx = 0; idx < count; idx++) {
-      QObject::connect(nodes[idx]->sink.data(), SIGNAL(DataReceived()),
+      QObject::connect(&nodes[idx]->sink, SIGNAL(DataReceived()),
           &sc, SLOT(Counter()));
       nodes[idx]->session->Start();
     }
@@ -236,12 +236,12 @@ namespace Tests {
     }
 
     for(int idx = 0; idx < count; idx++) {
-      ASSERT_EQ(msg, nodes[idx]->sink->Last().second);
+      ASSERT_EQ(msg, nodes[idx]->sink.Last().second);
     }
 
     int ncount = count + 1;
     nodes.append(new TestNode(Id(), ncount));
-    QObject::connect(nodes.last()->sink.data(), SIGNAL(DataReceived()),
+    QObject::connect(&nodes.last()->sink, SIGNAL(DataReceived()),
         &sc, SLOT(Counter()));
     for(int idx = 0; idx < count; idx++) {
       nodes[idx]->cm->ConnectTo(BufferAddress(ncount));
@@ -284,7 +284,7 @@ namespace Tests {
     }
 
     for(int idx = 0; idx < ncount; idx++) {
-      ASSERT_EQ(msg, nodes[idx]->sink->Last().second);
+      ASSERT_EQ(msg, nodes[idx]->sink.Last().second);
     }
 
     CleanUp(nodes);
@@ -315,7 +315,7 @@ namespace Tests {
 
     SignalCounter sc;
     for(int idx = 0; idx < count; idx++) {
-      QObject::connect(nodes[idx]->sink.data(), SIGNAL(DataReceived()),
+      QObject::connect(&nodes[idx]->sink, SIGNAL(DataReceived()),
           &sc, SLOT(Counter()));
       nodes[idx]->session->Start();
     }
@@ -349,10 +349,10 @@ namespace Tests {
 
     for(int idx = 0; idx < count; idx++) {
       if(idx == disconnector) {
-        ASSERT_EQ(nodes[idx]->sink->Count(), 0);
+        ASSERT_EQ(nodes[idx]->sink.Count(), 0);
         ASSERT_TRUE(nodes[idx]->session->Stopped());
       } else {
-        ASSERT_EQ(nodes[idx]->sink->Count(), 1);
+        ASSERT_EQ(nodes[idx]->sink.Count(), 1);
         ASSERT_FALSE(nodes[idx]->session->Stopped());
       }
     }
@@ -394,7 +394,7 @@ namespace Tests {
 
     SignalCounter sc;
     for(int idx = 0; idx < count; idx++) {
-      QObject::connect(nodes[idx]->sink.data(), SIGNAL(DataReceived()),
+      QObject::connect(&nodes[idx]->sink, SIGNAL(DataReceived()),
           &sc, SLOT(Counter()));
       nodes[idx]->session->Start();
     }
@@ -471,7 +471,7 @@ namespace Tests {
 
     SignalCounter sc;
     for(int idx = 0; idx < count; idx++) {
-      QObject::connect(nodes[idx]->sink.data(), SIGNAL(DataReceived()),
+      QObject::connect(&nodes[idx]->sink, SIGNAL(DataReceived()),
           &sc, SLOT(Counter()));
       nodes[idx]->session->Start();
     }
@@ -500,9 +500,9 @@ namespace Tests {
 
         QSharedPointer<Round> pr = node->session->GetCurrentRound();
         ASSERT_FALSE(node->session->GetGroup().Contains(badid));
-        ASSERT_TRUE(node->sink->Count() == 1);
-        if(node->sink->Count() == 1) {
-          ASSERT_EQ(node->sink->Last().second, msg);
+        ASSERT_TRUE(node->sink.Count() == 1);
+        if(node->sink.Count() == 1) {
+          ASSERT_EQ(node->sink.Last().second, msg);
         }
       }
     }

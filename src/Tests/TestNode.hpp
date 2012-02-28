@@ -16,7 +16,6 @@ namespace Tests {
         cm(new ConnectionManager(id, rpc)),
         sm(rpc),
         net(new DefaultNetwork(cm, rpc)),
-        sink(new BufferSink()),
         creds(cm->GetId(),
             QSharedPointer<AsymmetricKey>(CryptoFactory::GetInstance().
               GetLibrary()->CreatePrivateKey()),
@@ -30,14 +29,14 @@ namespace Tests {
 
       virtual ~TestNode()
       {
-        sink->Clear();
+        sink.Clear();
       }
 
       QSharedPointer<RpcHandler> rpc;
       QSharedPointer<ConnectionManager> cm;
       SessionManager sm;
       QSharedPointer<Network> net;
-      QSharedPointer<BufferSink> sink;
+      BufferSink sink;
       Credentials creds;
       QSharedPointer<Session> session;
       static int calledback;

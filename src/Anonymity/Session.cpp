@@ -62,10 +62,6 @@ namespace Anonymity {
 
   void Session::OnStart()
   {
-    if(_shared.isNull()) {
-      qFatal("Started a session but did not initialize shared pointer");
-    }
-
     qDebug() << _creds.GetLocalId().ToString() << "Session started:" <<
       _session_id.ToString();
 
@@ -208,7 +204,7 @@ namespace Anonymity {
     }
 
     Dissent::Utils::TimerCallback *cb =
-      new Dissent::Utils::TimerMethodShared<Session, int>(GetSharedPointer(),
+      new Dissent::Utils::TimerMethod<Session, int>(this,
           &Session::CheckRegistration, 0);
 
     _prepare_event = Dissent::Utils::Timer::GetInstance().QueueCallback(cb,
@@ -253,8 +249,7 @@ namespace Anonymity {
       "... trying again later.";
 
     Dissent::Utils::TimerCallback *cb =
-      new Dissent::Utils::TimerMethodShared<Session, int>(
-          GetSharedPointer(), &Session::Register, 0);
+      new Dissent::Utils::TimerMethod<Session, int>(this, &Session::Register, 0);
     _register_event = Dissent::Utils::Timer::GetInstance().QueueCallback(cb, 5000);
   }
 
@@ -453,8 +448,8 @@ namespace Anonymity {
 
     if(IsLeader() && _prepare_event.Stopped()) {
       Dissent::Utils::TimerCallback *cb =
-        new Dissent::Utils::TimerMethodShared<Session, int>(
-            GetSharedPointer(), &Session::CheckRegistration, 0);
+        new Dissent::Utils::TimerMethod<Session, int>(
+            this, &Session::CheckRegistration, 0);
       _prepare_event = Dissent::Utils::Timer::GetInstance().QueueCallback(cb, 0, 5000);
     } else if(_prepare_waiting) {
       ReceivedPrepare(_prepare_request);
@@ -469,7 +464,7 @@ namespace Anonymity {
     qDebug() << "Session" << ToString() << "preparing new round" <<
       _current_round->ToString();
 
-    _current_round->SetSink(_shared);
+    _current_round->SetSink(this);
     QObject::connect(_current_round.data(), SIGNAL(Finished()), this,
         SLOT(HandleRoundFinished()));
   }

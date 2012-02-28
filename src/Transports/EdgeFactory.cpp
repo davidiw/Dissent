@@ -1,3 +1,5 @@
+#include <QDebug>
+
 #include "EdgeFactory.hpp"
 
 namespace Dissent {

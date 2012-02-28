@@ -5,14 +5,14 @@
 #include <QPair>
 #include <QVector>
 
-#include "ISink.hpp"
+#include "ISinkObject.hpp"
 
 namespace Dissent {
 namespace Messaging {
   /**
    * Handle asynchronous data input storage
    */
-  class BufferSink : public QObject, public ISink {
+  class BufferSink : public ISinkObject {
     Q_OBJECT
 
     public:

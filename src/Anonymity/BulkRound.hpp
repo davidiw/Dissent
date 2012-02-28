@@ -245,7 +245,7 @@ namespace Anonymity {
       /**
        * Returns the ShuffleSink to access serialized descriptors
        */
-      const QSharedPointer<BufferSink> GetShuffleSink() const { return _shuffle_sink; }
+      const BufferSink &GetShuffleSink() const { return _shuffle_sink; }
 
       /**
        * Returns the parsed descriptors
@@ -403,7 +403,7 @@ namespace Anonymity {
       /**
        * Stores the output of the shuffle
        */
-      QSharedPointer<BufferSink> _shuffle_sink;
+      BufferSink _shuffle_sink;
 
       /**
        * The local nodes xor message for its own message

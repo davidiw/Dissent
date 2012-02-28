@@ -33,7 +33,6 @@ namespace Anonymity {
     _get_bulk_data(this, &BulkRound::GetBulkData),
     _get_blame_data(this, &BulkRound::GetBlameData),
     _state(Offline),
-    _shuffle_sink(new BufferSink()),
     _messages(GetGroup().Count()),
     _received_messages(0),
     _is_leader(GetGroup().GetLeader() == GetLocalId())
@@ -55,7 +54,7 @@ namespace Anonymity {
 
     _shuffle_round = _create_shuffle(GetGroup(), GetCredentials(), sr_id, net,
         _get_bulk_data);
-    _shuffle_round->SetSink(_shuffle_sink);
+    _shuffle_round->SetSink(&_shuffle_sink);
 
     QObject::connect(_shuffle_round.data(), SIGNAL(Finished()),
         this, SLOT(ShuffleFinished()));
@@ -437,7 +436,7 @@ namespace Anonymity {
       return;
     }
 
-    if(0 == _shuffle_sink->Count()) {
+    if(0 == _shuffle_sink.Count()) {
       _state = Finished;
       SetSuccessful(true);
       Stop("Round successfully finished -- no bulk messages");
@@ -469,8 +468,8 @@ namespace Anonymity {
     stream << BulkData << GetRoundId();
 
     _expected_bulk_size = 0;
-    for(int idx = 0; idx < _shuffle_sink->Count(); idx++) {
-      QPair<QSharedPointer<ISender>, QByteArray> pair(_shuffle_sink->At(idx));
+    for(int idx = 0; idx < _shuffle_sink.Count(); idx++) {
+      QPair<QSharedPointer<ISender>, QByteArray> pair(_shuffle_sink.At(idx));
       Descriptor des = ParseDescriptor(pair.second);
       _descriptors.append(des);
       if(_my_idx == -1 && _my_descriptor == des) {
@@ -536,7 +535,7 @@ namespace Anonymity {
     _shuffle_round = _create_shuffle(GetGroup(), GetCredentials(), sr_id, net,
         _get_blame_data);
 
-    _shuffle_round->SetSink(_shuffle_sink);
+    _shuffle_round->SetSink(&_shuffle_sink);
 
     QObject::connect(_shuffle_round.data(), SIGNAL(Finished()),
         this, SLOT(BlameShuffleFinished()));
@@ -544,7 +543,7 @@ namespace Anonymity {
 
   void BulkRound::BeginBlame()
   {
-    _shuffle_sink->Clear();
+    _shuffle_sink.Clear();
     _shuffle_round->Start();
   }
 
@@ -572,8 +571,8 @@ namespace Anonymity {
 
   void BulkRound::BlameShuffleFinished()
   {
-    for(int idx = 0; idx < _shuffle_sink->Count(); idx++) {
-      QPair<QSharedPointer<ISender>, QByteArray> pair(_shuffle_sink->At(idx));
+    for(int idx = 0; idx < _shuffle_sink.Count(); idx++) {
+      QPair<QSharedPointer<ISender>, QByteArray> pair(_shuffle_sink.At(idx));
       QDataStream stream(pair.second);
       QVector<BlameEntry> blame_vector;
       stream >> blame_vector;

@@ -60,12 +60,7 @@ namespace Transports {
       /**
        * The remote edge
        */
-      QSharedPointer<BufferEdge> _remote_edge;
-
-      /**
-       * The Remote side is closing...
-       */
-      bool _rem_closing;
+      QWeakPointer<BufferEdge> _remote_edge;
   };
 }
 }

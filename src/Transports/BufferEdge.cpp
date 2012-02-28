@@ -8,8 +8,7 @@ namespace Dissent {
 namespace Transports {
   BufferEdge::BufferEdge(const Address &local, const Address &remote,
       bool outgoing, int delay) :
-    Edge(local, remote, outgoing), Delay(delay), _remote_edge(0),
-    _rem_closing(false)
+    Edge(local, remote, outgoing), Delay(delay)
   {
   }
 
@@ -33,22 +32,19 @@ namespace Transports {
       return;
     }
 
-    if(_rem_closing) {
+    QSharedPointer<Edge> rem_edge = _remote_edge.toStrongRef();
+    if(!rem_edge) {
       return;
     }
 
     TimerCallback *tm = new TimerMethodShared<BufferEdge, QByteArray>(
-        _remote_edge.dynamicCast<BufferEdge>(),
+        rem_edge.dynamicCast<BufferEdge>(),
         &BufferEdge::DelayedReceive, data);
     Timer::GetInstance().QueueCallback(tm, Delay);
   }
 
   void BufferEdge::OnStop()
   {
-    if(!_rem_closing) {
-      _remote_edge->_rem_closing = true;
-      _remote_edge.clear();
-    }
     Edge::OnStop();
   }
 

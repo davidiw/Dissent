@@ -363,8 +363,6 @@ namespace Connections {
       return;
     }
 
-    _con_tab.PrintConnectionTable();
-
     if(_con_tab.GetEdges().count() == 0) {
       emit Disconnected();
     }

@@ -117,6 +117,7 @@ namespace Applications {
         session, SLOT(CallStop()));
 
     QSharedPointer<Session> psession(session);
+    session->SetSharedPointer(psession);
     node->GetSessionManager().AddSession(psession);
 
     psession->SetSink(node->GetSink().data());

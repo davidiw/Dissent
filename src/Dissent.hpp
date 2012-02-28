@@ -84,6 +84,7 @@
 #include "Messaging/Response.hpp"
 #include "Messaging/ResponseHandler.hpp"
 #include "Messaging/RpcHandler.hpp"
+#include "Messaging/SignalSink.hpp"
 #include "Messaging/Source.hpp"
 #include "Messaging/SourceObject.hpp"
 

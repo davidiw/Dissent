@@ -39,6 +39,7 @@ namespace Anonymity {
     _state_machine.AddState(PROCESS_DATA_SHUFFLE, -1, 0,
         &BlogDropRound::ProcessDataShuffle);
     _state_machine.AddTransition(SHUFFLING, PROCESS_DATA_SHUFFLE);
+    // CLIENT_WAIT_FOR_SERVER_PUBLIC_KEYS should be just WAIT_FOR_SERVER_PUBLIC_KEYS
     _state_machine.AddTransition(PROCESS_DATA_SHUFFLE, CLIENT_WAIT_FOR_SERVER_PUBLIC_KEYS);
     _state_machine.AddTransition(CLIENT_WAIT_FOR_SERVER_PUBLIC_KEYS, 
         PREPARE_FOR_BULK);
@@ -152,6 +153,7 @@ namespace Anonymity {
   {
   }
 
+  // Check out my new version of CSBulk, calling VerifiableSend is inefficient
   void BlogDropRound::VerifiableBroadcastToServers(const QByteArray &data)
   {
     Q_ASSERT(IsServer());
@@ -160,6 +162,7 @@ namespace Anonymity {
     }
   }
 
+  // Check out my new version of CSBulk, calling VerifiableSend is inefficient
   void BlogDropRound::VerifiableBroadcastToClients(const QByteArray &data)
   {
     Q_ASSERT(IsServer());
@@ -340,6 +343,7 @@ namespace Anonymity {
     QSet<Id> mykeys = _server_state->client_ciphertexts.keys().toSet();
     QSet<Id> theirkeys = remote_ctexts.keys().toSet();
 
+    // This is confusing, shouldn't the following comparison be before this?
     if((mykeys & theirkeys).count() != 0 && from != GetLocalId()) {
       throw QRunTimeError("Client submitted ciphertexts to multiple servers");
     }
@@ -580,6 +584,7 @@ namespace Anonymity {
     for(int slot_idx=0; slot_idx < _state->n_clients; slot_idx++) {
       if(slot_idx == _state->my_idx) {
 
+        // Would it make more sense to have this as a component of the blogdrop_author?
         QPair<QByteArray, bool> pair = GetData(Plaintext::CanFit(_state->params));
         if(pair.first.size() > 0) {
           qDebug() << "Found a message of" << pair.first.size();
@@ -670,6 +675,7 @@ namespace Anonymity {
       by_slot.append(QList<QByteArray>());
     }
 
+    // Why aren't you using foreach(const Id &id, _server_state->client_ciphertexts.keys())  ... much easier to read
     // For each user
     for(QHash<Id, QByteArray>::const_iterator i=_server_state->client_ciphertexts.begin();
         i!=_server_state->client_ciphertexts.end();

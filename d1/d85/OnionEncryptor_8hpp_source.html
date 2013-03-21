@@ -111,29 +111,27 @@ var searchBox = new SearchBox("searchBox", "../../search",false,'Search');
 <div class="line"><a name="l00039"></a><span class="lineno">   39</span>&#160;          <span class="keyword">const</span> QVector&lt;QByteArray&gt; &amp;ciphertext,</div>
 <div class="line"><a name="l00040"></a><span class="lineno">   40</span>&#160;          QVector&lt;QByteArray&gt; &amp;cleartext, QVector&lt;int&gt; *bad = 0) <span class="keyword">const</span>;</div>
 <div class="line"><a name="l00041"></a><span class="lineno">   41</span>&#160;</div>
-<div class="line"><a name="l00046"></a><span class="lineno">   46</span>&#160;      <span class="keywordtype">void</span> <a class="code" href="../../d5/d21/classDissent_1_1Crypto_1_1OnionEncryptor.html#a8c537c1034cb14f5c66602b561610250" title="Randomizes the inpuptted message blocks.">RandomizeBlocks</a>(QVector&lt;QByteArray&gt; &amp;text) <span class="keyword">const</span>;</div>
-<div class="line"><a name="l00047"></a><span class="lineno">   47</span>&#160;</div>
-<div class="line"><a name="l00055"></a><span class="lineno">   55</span>&#160;      <span class="keywordtype">bool</span> <a class="code" href="../../d5/d21/classDissent_1_1Crypto_1_1OnionEncryptor.html#a164ac3323b9a0a648679ff2346f31726" title="Verifies that the ciphertext and cleartext match, returning true if that is the case, false otherwise.">VerifyOne</a>(<span class="keyword">const</span> QSharedPointer&lt;AsymmetricKey&gt; &amp;key,</div>
-<div class="line"><a name="l00056"></a><span class="lineno">   56</span>&#160;          <span class="keyword">const</span> QVector&lt;QByteArray&gt; &amp;cleartext,</div>
-<div class="line"><a name="l00057"></a><span class="lineno">   57</span>&#160;          <span class="keyword">const</span> QVector&lt;QByteArray&gt; &amp;ciphertext) <span class="keyword">const</span>;</div>
-<div class="line"><a name="l00058"></a><span class="lineno">   58</span>&#160;</div>
-<div class="line"><a name="l00068"></a><span class="lineno">   68</span>&#160;      <span class="keywordtype">bool</span> <a class="code" href="../../d5/d21/classDissent_1_1Crypto_1_1OnionEncryptor.html#a74686d4eff80005bf38d1f521e0b2538" title="Like Verify one, but checcks against a set of keys and returns the indexes of the bad blocks in the b...">VerifyAll</a>(<span class="keyword">const</span> QVector&lt;QSharedPointer&lt;AsymmetricKey&gt; &gt; &amp;keys,</div>
-<div class="line"><a name="l00069"></a><span class="lineno">   69</span>&#160;          <span class="keyword">const</span> QVector&lt;QVector&lt;QByteArray&gt; &gt; &amp;onion,</div>
-<div class="line"><a name="l00070"></a><span class="lineno">   70</span>&#160;          QBitArray &amp;bad) <span class="keyword">const</span>;</div>
-<div class="line"><a name="l00071"></a><span class="lineno">   71</span>&#160;</div>
-<div class="line"><a name="l00080"></a><span class="lineno">   80</span>&#160;      <span class="keywordtype">int</span> <a class="code" href="../../d5/d21/classDissent_1_1Crypto_1_1OnionEncryptor.html#aa5cabcf195cca2cba43204cdfbc0af68" title="After receiving the various peers intermediate cipher texts, this reorders them to be placed into Ver...">ReorderRandomBits</a>(<span class="keyword">const</span> QVector&lt;QVector&lt;QByteArray&gt; &gt; &amp;in_bits,</div>
-<div class="line"><a name="l00081"></a><span class="lineno">   81</span>&#160;          QVector&lt;QVector&lt;QByteArray&gt; &gt; &amp;out_bits) <span class="keyword">const</span>;</div>
-<div class="line"><a name="l00082"></a><span class="lineno">   82</span>&#160;</div>
-<div class="line"><a name="l00086"></a><span class="lineno"><a class="code" href="../../d5/d21/classDissent_1_1Crypto_1_1OnionEncryptor.html#af4f0a9a89e185bba41172cfbd1ff86b0">   86</a></span>&#160;      <span class="keyword">virtual</span> <a class="code" href="../../d5/d21/classDissent_1_1Crypto_1_1OnionEncryptor.html#af4f0a9a89e185bba41172cfbd1ff86b0" title="Destructor.">~OnionEncryptor</a>() {}</div>
-<div class="line"><a name="l00087"></a><span class="lineno">   87</span>&#160;  };</div>
-<div class="line"><a name="l00088"></a><span class="lineno">   88</span>&#160;}</div>
-<div class="line"><a name="l00089"></a><span class="lineno">   89</span>&#160;}</div>
-<div class="line"><a name="l00090"></a><span class="lineno">   90</span>&#160;</div>
-<div class="line"><a name="l00091"></a><span class="lineno">   91</span>&#160;<span class="preprocessor">#endif</span></div>
+<div class="line"><a name="l00049"></a><span class="lineno">   49</span>&#160;      <span class="keywordtype">bool</span> <a class="code" href="../../d5/d21/classDissent_1_1Crypto_1_1OnionEncryptor.html#a164ac3323b9a0a648679ff2346f31726" title="Verifies that the ciphertext and cleartext match, returning true if that is the case, false otherwise.">VerifyOne</a>(<span class="keyword">const</span> QSharedPointer&lt;AsymmetricKey&gt; &amp;key,</div>
+<div class="line"><a name="l00050"></a><span class="lineno">   50</span>&#160;          <span class="keyword">const</span> QVector&lt;QByteArray&gt; &amp;cleartext,</div>
+<div class="line"><a name="l00051"></a><span class="lineno">   51</span>&#160;          <span class="keyword">const</span> QVector&lt;QByteArray&gt; &amp;ciphertext) <span class="keyword">const</span>;</div>
+<div class="line"><a name="l00052"></a><span class="lineno">   52</span>&#160;</div>
+<div class="line"><a name="l00062"></a><span class="lineno">   62</span>&#160;      <span class="keywordtype">bool</span> <a class="code" href="../../d5/d21/classDissent_1_1Crypto_1_1OnionEncryptor.html#a74686d4eff80005bf38d1f521e0b2538" title="Like Verify one, but checcks against a set of keys and returns the indexes of the bad blocks in the b...">VerifyAll</a>(<span class="keyword">const</span> QVector&lt;QSharedPointer&lt;AsymmetricKey&gt; &gt; &amp;keys,</div>
+<div class="line"><a name="l00063"></a><span class="lineno">   63</span>&#160;          <span class="keyword">const</span> QVector&lt;QVector&lt;QByteArray&gt; &gt; &amp;onion,</div>
+<div class="line"><a name="l00064"></a><span class="lineno">   64</span>&#160;          QBitArray &amp;bad) <span class="keyword">const</span>;</div>
+<div class="line"><a name="l00065"></a><span class="lineno">   65</span>&#160;</div>
+<div class="line"><a name="l00074"></a><span class="lineno">   74</span>&#160;      <span class="keywordtype">int</span> <a class="code" href="../../d5/d21/classDissent_1_1Crypto_1_1OnionEncryptor.html#aa5cabcf195cca2cba43204cdfbc0af68" title="After receiving the various peers intermediate cipher texts, this reorders them to be placed into Ver...">ReorderRandomBits</a>(<span class="keyword">const</span> QVector&lt;QVector&lt;QByteArray&gt; &gt; &amp;in_bits,</div>
+<div class="line"><a name="l00075"></a><span class="lineno">   75</span>&#160;          QVector&lt;QVector&lt;QByteArray&gt; &gt; &amp;out_bits) <span class="keyword">const</span>;</div>
+<div class="line"><a name="l00076"></a><span class="lineno">   76</span>&#160;</div>
+<div class="line"><a name="l00080"></a><span class="lineno"><a class="code" href="../../d5/d21/classDissent_1_1Crypto_1_1OnionEncryptor.html#af4f0a9a89e185bba41172cfbd1ff86b0">   80</a></span>&#160;      <span class="keyword">virtual</span> <a class="code" href="../../d5/d21/classDissent_1_1Crypto_1_1OnionEncryptor.html#af4f0a9a89e185bba41172cfbd1ff86b0" title="Destructor.">~OnionEncryptor</a>() {}</div>
+<div class="line"><a name="l00081"></a><span class="lineno">   81</span>&#160;  };</div>
+<div class="line"><a name="l00082"></a><span class="lineno">   82</span>&#160;}</div>
+<div class="line"><a name="l00083"></a><span class="lineno">   83</span>&#160;}</div>
+<div class="line"><a name="l00084"></a><span class="lineno">   84</span>&#160;</div>
+<div class="line"><a name="l00085"></a><span class="lineno">   85</span>&#160;<span class="preprocessor">#endif</span></div>
 </div><!-- fragment --></div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Wed Feb 13 2013 20:08:01 for Dissent by &#160;<a href="http://www.doxygen.org/index.html">
+Generated on Wed Mar 20 2013 22:45:09 for Dissent by &#160;<a href="http://www.doxygen.org/index.html">
 <img class="footer" src="../../doxygen.png" alt="doxygen"/>
 </a> 1.8.3.1
 </small></address>

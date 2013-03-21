@@ -117,9 +117,6 @@ Public Member Functions</h2></td></tr>
 <tr class="memitem:a452a5f5e8ac3852bd5d41312565361ac"><td class="memItemLeft" align="right" valign="top">virtual bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d5/d21/classDissent_1_1Crypto_1_1OnionEncryptor.html#a452a5f5e8ac3852bd5d41312565361ac">Decrypt</a> (const QSharedPointer&lt; <a class="el" href="../../d7/d96/classDissent_1_1Crypto_1_1AsymmetricKey.html">AsymmetricKey</a> &gt; &amp;key, const QVector&lt; QByteArray &gt; &amp;ciphertext, QVector&lt; QByteArray &gt; &amp;cleartext, QVector&lt; int &gt; *bad=0) const </td></tr>
 <tr class="memdesc:a452a5f5e8ac3852bd5d41312565361ac"><td class="mdescLeft">&#160;</td><td class="mdescRight">Using the key it removes a layer of encryption from ciphertexts, returns true if everything parses fine.  <a href="#a452a5f5e8ac3852bd5d41312565361ac">More...</a><br/></td></tr>
 <tr class="separator:a452a5f5e8ac3852bd5d41312565361ac"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a8c537c1034cb14f5c66602b561610250"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d5/d21/classDissent_1_1Crypto_1_1OnionEncryptor.html#a8c537c1034cb14f5c66602b561610250">RandomizeBlocks</a> (QVector&lt; QByteArray &gt; &amp;text) const </td></tr>
-<tr class="memdesc:a8c537c1034cb14f5c66602b561610250"><td class="mdescLeft">&#160;</td><td class="mdescRight">Randomizes the inpuptted message blocks.  <a href="#a8c537c1034cb14f5c66602b561610250">More...</a><br/></td></tr>
-<tr class="separator:a8c537c1034cb14f5c66602b561610250"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a164ac3323b9a0a648679ff2346f31726"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d5/d21/classDissent_1_1Crypto_1_1OnionEncryptor.html#a164ac3323b9a0a648679ff2346f31726">VerifyOne</a> (const QSharedPointer&lt; <a class="el" href="../../d7/d96/classDissent_1_1Crypto_1_1AsymmetricKey.html">AsymmetricKey</a> &gt; &amp;key, const QVector&lt; QByteArray &gt; &amp;cleartext, const QVector&lt; QByteArray &gt; &amp;ciphertext) const </td></tr>
 <tr class="memdesc:a164ac3323b9a0a648679ff2346f31726"><td class="mdescLeft">&#160;</td><td class="mdescRight">Verifies that the ciphertext and cleartext match, returning true if that is the case, false otherwise.  <a href="#a164ac3323b9a0a648679ff2346f31726">More...</a><br/></td></tr>
 <tr class="separator:a164ac3323b9a0a648679ff2346f31726"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -238,30 +235,6 @@ virtual&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href=".
     <tr><td class="paramname">cleartext</td><td>the data to encrypt </td></tr>
     <tr><td class="paramname">ciphertext</td><td>the resulting ciphertext </td></tr>
     <tr><td class="paramname">intermediate</td><td>optional parameter, if set returns the onion layers </td></tr>
-  </table>
-  </dd>
-</dl>
-
-</div>
-</div>
-<a class="anchor" id="a8c537c1034cb14f5c66602b561610250"></a>
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">void Dissent::Crypto::OnionEncryptor::RandomizeBlocks </td>
-          <td>(</td>
-          <td class="paramtype">QVector&lt; QByteArray &gt; &amp;&#160;</td>
-          <td class="paramname"><em>text</em></td><td>)</td>
-          <td> const</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Randomizes the inpuptted message blocks. </p>
-<dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramname">text</td><td>the message blocks </td></tr>
   </table>
   </dd>
 </dl>
@@ -395,7 +368,7 @@ virtual&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href=".
 </div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Wed Feb 13 2013 20:08:01 for Dissent by &#160;<a href="http://www.doxygen.org/index.html">
+Generated on Wed Mar 20 2013 22:45:10 for Dissent by &#160;<a href="http://www.doxygen.org/index.html">
 <img class="footer" src="../../doxygen.png" alt="doxygen"/>
 </a> 1.8.3.1
 </small></address>

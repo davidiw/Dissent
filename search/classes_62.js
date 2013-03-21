@@ -16,6 +16,8 @@ var searchData=
   ['blogdroptest',['BlogDropTest',['../df/de0/classDissent_1_1Tests_1_1BlogDropTest.html',1,'Dissent::Tests']]],
   ['blogdroputils',['BlogDropUtils',['../d4/d0f/classDissent_1_1Crypto_1_1BlogDrop_1_1BlogDropUtils.html',1,'Dissent::Crypto::BlogDrop']]],
   ['bootstrapper',['Bootstrapper',['../d0/db3/classDissent_1_1Connections_1_1Bootstrapper.html',1,'Dissent::Connections']]],
+  ['buddymonitor',['BuddyMonitor',['../d9/d0b/classDissent_1_1Anonymity_1_1Buddies_1_1BuddyMonitor.html',1,'Dissent::Anonymity::Buddies']]],
+  ['buddypolicy',['BuddyPolicy',['../d4/d05/classDissent_1_1Anonymity_1_1Buddies_1_1BuddyPolicy.html',1,'Dissent::Anonymity::Buddies']]],
   ['bufferaddress',['BufferAddress',['../d5/d7f/classDissent_1_1Transports_1_1BufferAddress.html',1,'Dissent::Transports']]],
   ['bufferaddressdata',['BufferAddressData',['../d5/d4e/classDissent_1_1Transports_1_1BufferAddressData.html',1,'Dissent::Transports']]],
   ['bufferedge',['BufferEdge',['../d3/de8/classDissent_1_1Transports_1_1BufferEdge.html',1,'Dissent::Transports']]],

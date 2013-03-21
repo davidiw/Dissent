@@ -5,6 +5,7 @@ var searchData=
   ['udptimeout',['UdpTimeout',['../dd/d24/classDissent_1_1Tunnel_1_1ExitTunnel.html#a658a6bc60cf7d7dc6e08f70491596e9e',1,'Dissent::Tunnel::ExitTunnel']]],
   ['unregister',['Unregister',['../dc/d59/classDissent_1_1Messaging_1_1RpcHandler.html#ad429e143496a83d2750cfd7076d7910f',1,'Dissent::Messaging::RpcHandler']]],
   ['update',['Update',['../df/df2/classDissent_1_1Crypto_1_1Hash.html#a4906364874e1208eab3318694a852e14',1,'Dissent::Crypto::Hash']]],
+  ['updatebuddies',['UpdateBuddies',['../d4/d05/classDissent_1_1Anonymity_1_1Buddies_1_1BuddyPolicy.html#ac3a8add865096df2972b700b857b5bc6',1,'Dissent::Anonymity::Buddies::BuddyPolicy::UpdateBuddies()'],['../d1/dec/classDissent_1_1Anonymity_1_1Buddies_1_1DynamicBuddyPolicy.html#af6c137c32b62c4a787af2fcef5bbefcd',1,'Dissent::Anonymity::Buddies::DynamicBuddyPolicy::UpdateBuddies()'],['../d9/d75/classDissent_1_1Anonymity_1_1Buddies_1_1StaticBuddyPolicy.html#a8a0d4b5c91ac7d34ba0c3a576ff54fc4',1,'Dissent::Anonymity::Buddies::StaticBuddyPolicy::UpdateBuddies()']]],
   ['updategroup',['UpdateGroup',['../dc/dc5/classDissent_1_1Identity_1_1GroupHolder.html#a5b7f8983200f7a2b92745b470f538bbc',1,'Dissent::Identity::GroupHolder']]],
   ['upstreampacketready',['UpstreamPacketReady',['../d2/da7/classDissent_1_1Tunnel_1_1SocksConnection.html#a89985b904185f19c1261f1adbe8a3d61',1,'Dissent::Tunnel::SocksConnection']]],
   ['usedefault',['UseDefault',['../d0/dab/classDissent_1_1Utils_1_1Logging.html#af72d31ca0fe6aad4db3eb11b3ce6629e',1,'Dissent::Utils::Logging']]],

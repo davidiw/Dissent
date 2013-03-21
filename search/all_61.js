@@ -29,6 +29,7 @@ var searchData=
   ['addtransition',['AddTransition',['../d0/d6c/classDissent_1_1Anonymity_1_1RoundStateMachine.html#a0b7fca3b47c30eac4a6842b1a682ff41',1,'Dissent::Anonymity::RoundStateMachine']]],
   ['append',['Append',['../dd/d76/classDissent_1_1Anonymity_1_1Log.html#a33106e6058bc715fc233cdeeb4da2410',1,'Dissent::Anonymity::Log']]],
   ['appendentry',['AppendEntry',['../d0/d59/classDissent_1_1PeerReview_1_1EntryLog.html#a34393b6df8facd85d6ad9bb8254998a9',1,'Dissent::PeerReview::EntryLog']]],
+  ['appendgroup',['AppendGroup',['../d4/d05/classDissent_1_1Anonymity_1_1Buddies_1_1BuddyPolicy.html#a18ba59f2f1bc213708b1daeb81530d8b',1,'Dissent::Anonymity::Buddies::BuddyPolicy']]],
   ['asymmetrickey',['AsymmetricKey',['../d7/d96/classDissent_1_1Crypto_1_1AsymmetricKey.html',1,'Dissent::Crypto']]],
   ['at',['At',['../dd/d76/classDissent_1_1Anonymity_1_1Log.html#a41f2dc867968cd4f76d3095b70156bd4',1,'Dissent::Anonymity::Log::At()'],['../dc/d2c/classDissent_1_1Messaging_1_1BufferSink.html#a83dde09e66d8f2403e1fd8ea10996d5b',1,'Dissent::Messaging::BufferSink::At()']]],
   ['authfactory',['AuthFactory',['../db/d57/classDissent_1_1Applications_1_1AuthFactory.html',1,'Dissent::Applications']]],

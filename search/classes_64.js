@@ -6,5 +6,6 @@ var searchData=
   ['diffiehellman',['DiffieHellman',['../d7/d61/classDissent_1_1Crypto_1_1DiffieHellman.html',1,'Dissent::Crypto']]],
   ['dsaprivatekey',['DsaPrivateKey',['../d8/da1/classDissent_1_1Crypto_1_1DsaPrivateKey.html',1,'Dissent::Crypto']]],
   ['dsapublickey',['DsaPublicKey',['../db/d42/classDissent_1_1Crypto_1_1DsaPublicKey.html',1,'Dissent::Crypto']]],
-  ['dummysink',['DummySink',['../d8/d1a/classDissent_1_1Messaging_1_1DummySink.html',1,'Dissent::Messaging']]]
+  ['dummysink',['DummySink',['../d8/d1a/classDissent_1_1Messaging_1_1DummySink.html',1,'Dissent::Messaging']]],
+  ['dynamicbuddypolicy',['DynamicBuddyPolicy',['../d1/dec/classDissent_1_1Anonymity_1_1Buddies_1_1DynamicBuddyPolicy.html',1,'Dissent::Anonymity::Buddies']]]
 ];

@@ -5,11 +5,9 @@
 #include <QObject>
 #include <QSharedPointer>
 
-#include "Buddies/BuddyMonitor.hpp"
-#include "Buddies/NullBuddyPolicy.hpp"
+#include "ClientServer/Overlay.hpp"
 #include "Connections/Id.hpp"
-#include "Connections/Network.hpp"
-#include "Identity/Group.hpp"
+#include "Identity/Roster.hpp"
 #include "Identity/PrivateIdentity.hpp"
 #include "Messaging/GetDataCallback.hpp"
 #include "Messaging/ISender.hpp"
@@ -41,31 +39,21 @@ namespace Anonymity {
     Q_OBJECT
 
     public:
-      typedef Buddies::BuddyMonitor BuddyMonitor;
-      typedef Connections::Connection Connection;
-      typedef Connections::Id Id;
-      typedef Connections::Network Network;
-      typedef Crypto::AsymmetricKey AsymmetricKey;
-      typedef Crypto::DiffieHellman DiffieHellman;
-      typedef Identity::Group Group;
-      typedef Identity::PrivateIdentity PrivateIdentity;
-      typedef Messaging::GetDataCallback GetDataCallback;
-      typedef Messaging::Request Request;
-
       /**
        * Constructor
-       * @param group Group used during this round
-       * @param ident the local nodes credentials
-       * @param round_id Unique round id (nonce)
-       * @param network handles message sending
+       * @param clients the list of clients in the round
+       * @param servers the list of servers in the round
+       * @param ident this participants private information
+       * @param nonce Unique round id (nonce)
+       * @param overlay handles message sending
        * @param get_data requests data to share during this session
        */
-      explicit Round(const Group &group,
-          const PrivateIdentity &ident,
-          const Id &round_id,
-          const QSharedPointer<Network> &network,
-          GetDataCallback &get_data,
-          const QSharedPointer<BuddyMonitor> &bm);
+      explicit Round(const Identity::Roster &clients,
+          const Identity::Roster &servers,
+          const Identity::PrivateIdentity &ident,
+          const QByteArray &nonce,
+          const QSharedPointer<ClientServer::Overlay> &overlay,
+          Messaging::GetDataCallback &get_data);
 
       /**
        * Destructor
@@ -76,34 +64,39 @@ namespace Anonymity {
        * Handle a data message from a remote peer
        * @param notification message from a remote peer
        */
-      virtual void IncomingData(const Request &notification);
+      virtual void IncomingData(const Messaging::Request &notification);
 
       /**
        * Returns whether or not there were any problems in the round
        */
-      inline bool Successful() const { return _successful; }
+      inline bool Successful() const { return m_successful; }
 
       /**
        * Returns the local id
        */
-      inline const Id &GetLocalId() const { return _ident.GetLocalId(); }
+      inline const Connections::Id GetLocalId() const { return m_ident.GetId(); }
 
       /**
-       * Returns the round id
+       * Returns the round nonce
        */
-      inline const Id &GetRoundId() const { return _round_id; }
+      inline QByteArray GetNonce() const { return m_nonce; }
 
       /**
-       * Returns the group used in the round
+       * Returns the client roster used in the round
        */
-      inline const Group &GetGroup() const { return _group; }
+      inline const Identity::Roster &GetClients() const { return m_clients; }
+
+      /**
+       * Returns the server roster used in the round
+       */
+      inline const Identity::Roster &GetServers() const { return m_servers; }
 
       /**
        * Returns the list of bad nodes discovered in the round
        */
       inline virtual const QVector<int> &GetBadMembers() const
       {
-        return _empty_list;
+        return m_empty_list;
       }
 
       /**
@@ -116,7 +109,7 @@ namespace Anonymity {
        * If the ConnectionTable has a disconnect, the round may need to react
        * @param id the peer that was disconnected
        */
-      virtual void HandleDisconnect(const Id &id);
+      virtual void HandleDisconnect(const Connections::Id &id);
 
       inline virtual QString ToString() const { return "Round"; }
 
@@ -127,50 +120,34 @@ namespace Anonymity {
       virtual void PeerJoined() {}
 
       /**
-       * Returns true if the protocol supports nodes that have left the round
-       * to rejoin.
-       */
-      virtual bool SupportsRejoins() { return false; }
-
-      /**
        * Was the round interrupted?  Should the leader interrupt others.
        */
-      bool Interrupted() { return _interrupted; }
+      bool Interrupted() { return m_interrupted; }
 
       /**
        * Round interrupted, leader should interrupt others.
        */
-      void SetInterrupted() { _interrupted = true; }
+      void SetInterrupted() { m_interrupted = true; }
 
       inline QSharedPointer<Round> GetSharedPointer()
       {
-        return _shared.toStrongRef();
+        return m_shared.toStrongRef();
       }
 
       void SetSharedPointer(const QSharedPointer<Round> &shared)
       {
-        _shared = shared.toWeakRef();
+        m_shared = shared.toWeakRef();
       }
 
       /**
        * Returns the time the Round was created
        */
-      QDateTime GetCreateTime() const { return _create_time; }
+      QDateTime GetCreateTime() const { return m_create_time; }
 
       /**
        * Returns the time Start was called
        */
-      QDateTime GetStartTime() const { return _start_time; }
-
-      /**
-       * Can this round type receive a minimal group definition?
-       */
-      virtual bool CSGroupCapable() const { return false; }
-
-      /**
-       * Returns the internal buddy monitor
-       */
-      inline QSharedPointer<BuddyMonitor> GetBuddyMonitor() { return _bm; }
+      QDateTime GetStartTime() const { return m_start_time; }
 
     signals:
       /**
@@ -194,7 +171,7 @@ namespace Anonymity {
        * @param data Incoming data
        * @param id the remote peer sending the data
        */
-      virtual void ProcessData(const Id &id, const QByteArray &data) = 0;
+      virtual void ProcessData(const Connections::Id &id, const QByteArray &data) = 0;
 
       /**
        * Verifies that the provided data has a signature block and is properly
@@ -203,7 +180,7 @@ namespace Anonymity {
        * @param data the data + signature blocks
        * @param msg the data block
        */
-      bool Verify(const Id &from, const QByteArray &data, QByteArray &msg);
+      bool Verify(const Connections::Id &from, const QByteArray &data, QByteArray &msg);
 
       /**
        * Signs and encrypts a message before broadcasting
@@ -211,8 +188,8 @@ namespace Anonymity {
        */
       virtual inline void VerifiableBroadcast(const QByteArray &data)
       {
-        QByteArray msg = data + GetSigningKey()->Sign(data);
-        GetNetwork()->Broadcast(msg);
+        QByteArray msg = data + GetKey()->Sign(data);
+        GetOverlay()->Broadcast("Session::Data", msg);
       }
 
       /**
@@ -220,10 +197,11 @@ namespace Anonymity {
        * @param to the peer to send it to
        * @param data the message to send
        */
-      virtual inline void VerifiableSend(const Id &to, const QByteArray &data)
+      virtual inline void VerifiableSend(const Connections::Id &to,
+          const QByteArray &data)
       {
-        QByteArray msg = data + GetSigningKey()->Sign(data);
-        GetNetwork()->Send(to, msg);
+        QByteArray msg = data + GetKey()->Sign(data);
+        GetOverlay()->SendNotification(to, "Session::Data", msg);
       }
 
       /**
@@ -231,52 +209,39 @@ namespace Anonymity {
        */
       inline const QPair<QByteArray, bool> GetData(int max)
       {
-        return _get_data_cb(max);
+        return m_get_data_cb(max);
       }
 
       /**
        * Returns the nodes signing key
        */
-      inline QSharedPointer<AsymmetricKey> GetSigningKey() const
+      inline QSharedPointer<Crypto::AsymmetricKey> GetKey() const
       {
-        return _ident.GetSigningKey();
+        return m_ident.GetKey();
       }
 
       /**
        * Returns the local credentials
        */
-      inline const PrivateIdentity &GetPrivateIdentity() const { return _ident; }
+      inline const Identity::PrivateIdentity &GetPrivateIdentity() const
+      {
+        return m_ident;
+      }
 
       /**
        * Returns the DiffieHellman key
        */
-      inline const Crypto::DiffieHellman &GetDhKey() const
+      inline const Crypto::DiffieHellman GetDhKey() const
       {
-        return _ident.GetDhKey();
+        return m_ident.GetDhKey();
       }
 
-      void SetSuccessful(bool successful) { _successful = successful; }
+      void SetSuccessful(bool successful) { m_successful = successful; }
 
       /**
        * Returns the underlyign network
        */
-      QSharedPointer<Network> &GetNetwork() { return _network; }
-
-      /**
-       * Used to process background events in CPU / I/O heavy portions
-       * of the code.
-       * @returns true if processing should continue, false if the round
-       * is stopped
-       */
-      inline bool ProcessEvents()
-      {
-        // Safe way to ensure the round doesn't close on us unexpectedly
-        QSharedPointer<Round> round = GetSharedPointer();
-        QCoreApplication::processEvents();
-        QCoreApplication::sendPostedEvents();
-        bool stopped = round->Stopped();
-        return !stopped;
-      }
+      QSharedPointer<ClientServer::Overlay> &GetOverlay() { return m_overlay; }
 
       static constexpr float PERCENT_ACTIVE = -1.0;
 
@@ -297,25 +262,25 @@ namespace Anonymity {
       /**
        * Make Source::PushData available
        */
-      inline void PushData(const QSharedPointer<ISender> &sender,
+      inline void PushData(const QSharedPointer<Messaging::ISender> &sender,
           const QByteArray &data)
       {
-        SourceObject::PushData(sender, data);
+        Messaging::SourceObject::PushData(sender, data);
       }
 
     private:
-      QDateTime _create_time;
-      QDateTime _start_time;
-      const Group _group;
-      const PrivateIdentity _ident;
-      const Id _round_id;
-      QSharedPointer<Network> _network;
-      GetDataCallback &_get_data_cb;
-      bool _successful;
-      QVector<int> _empty_list;
-      bool _interrupted;
-      QSharedPointer<BuddyMonitor> _bm;
-      QWeakPointer<Round> _shared;
+      QDateTime m_create_time;
+      QDateTime m_start_time;
+      const Identity::Roster m_clients;
+      const Identity::Roster m_servers;
+      const Identity::PrivateIdentity m_ident;
+      const QByteArray m_nonce;
+      QSharedPointer<ClientServer::Overlay> m_overlay;
+      Messaging::GetDataCallback &m_get_data_cb;
+      bool m_successful;
+      QVector<int> m_empty_list;
+      bool m_interrupted;
+      QWeakPointer<Round> m_shared;
   };
 
   inline QDebug operator<<(QDebug dbg, const QSharedPointer<Round> &round)
@@ -330,20 +295,23 @@ namespace Anonymity {
     return dbg.space();
   }
 
-  typedef QSharedPointer<Round> (*CreateRound)(const Round::Group &,
-      const Round::PrivateIdentity &, const Connections::Id &,
-      const QSharedPointer<Connections::Network> &,
-      Messaging::GetDataCallback &get_data_cb,
-      const QSharedPointer<Buddies::BuddyMonitor> &);
+  typedef QSharedPointer<Round> (*CreateRound)(
+      const Identity::Roster &,
+      const Identity::Roster &,
+      const Identity::PrivateIdentity &,
+      const QByteArray &,
+      const QSharedPointer<ClientServer::Overlay> &,
+      Messaging::GetDataCallback &get_data_cb);
 
   template <typename T> QSharedPointer<Round> TCreateRound(
-      const Round::Group &group, const Round::PrivateIdentity &ident,
-      const Connections::Id &round_id,
-      const QSharedPointer<Connections::Network> &network,
-      Messaging::GetDataCallback &get_data,
-      const QSharedPointer<Buddies::BuddyMonitor> &bm)
+      const Identity::Roster &clients,
+      const Identity::Roster &servers,
+      const Identity::PrivateIdentity &ident,
+      const QByteArray &nonce,
+      const QSharedPointer<ClientServer::Overlay> &overlay,
+      Messaging::GetDataCallback &get_data)
   {
-    QSharedPointer<T> round(new T(group, ident, round_id, network, get_data, bm));
+    QSharedPointer<T> round(new T(clients, servers, ident, nonce, overlay, get_data));
     round->SetSharedPointer(round);
     return round;
   }

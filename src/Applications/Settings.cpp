@@ -66,19 +66,22 @@ namespace Applications {
     ExitTunnelProxyUrl = TryParseUrl(_settings->value(Param<Params::ExitTunnelProxyUrl>()).toString(), "tcp");
     ExitTunnel = (ExitTunnelProxyUrl != QUrl()) || ExitTunnel;
 
+    /*
     if(_settings->contains(Param<Params::SessionType>())) {
       QString stype = _settings->value(Param<Params::SessionType>()).toString();
       SessionType = SessionFactory::GetSessionType(stype);
     } else {
       SessionType = SessionFactory::NULL_ROUND;
     }
+    */
 
-    if(_settings->contains(Param<Params::SubgroupPolicy>())) {
+/*    if(_settings->contains(Param<Params::SubgroupPolicy>())) {
       QString ptype = _settings->value(Param<Params::SubgroupPolicy>()).toString();
       SubgroupPolicy = Group::StringToPolicyType(ptype);
     } else {
       SubgroupPolicy = Group::CompleteGroup;
     }
+    */
 
     if(_settings->contains(Param<Params::Log>())) {
       Log = _settings->value(Param<Params::Log>()).toString().toLower();
@@ -157,10 +160,11 @@ namespace Applications {
       return false;
     }
 
-    if(SubgroupPolicy == -1) {
+/*    if(SubgroupPolicy == -1) {
       _reason = "Invalid subgroup policy";
       return false;
     }
+    */
 
     if(AuthMode == AuthFactory::INVALID) {
       _reason = "Invalid auth_mode";
@@ -178,10 +182,12 @@ namespace Applications {
       }
     }
 
+    /*
     if(SessionType == SessionFactory::INVALID) {
       _reason = "Invalid session type";
       return false;
     }
+    */
 
     return true;
   }
@@ -269,8 +275,8 @@ namespace Applications {
     }
     _settings->setValue(Param<Params::LocalId>(), local_ids);
     _settings->setValue(Param<Params::LeaderId>(), LeaderId.ToString());
-    _settings->setValue(Param<Params::SubgroupPolicy>(),
-        Group::PolicyTypeToString(SubgroupPolicy));
+//    _settings->setValue(Param<Params::SubgroupPolicy>(),
+//        Group::PolicyTypeToString(SubgroupPolicy));
   }
 
   Settings Settings::CommandLineParse(const QStringList &params, bool actions)

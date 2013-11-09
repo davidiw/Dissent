@@ -59,7 +59,7 @@ namespace Tests {
     EXPECT_EQ(settings2.RemotePeers[1], QUrl("buffer://6"));
     EXPECT_EQ(settings2.LocalNodeCount, 3);
     EXPECT_EQ(settings2.AuthMode, AuthFactory::NULL_AUTH);
-    EXPECT_EQ(settings2.SessionType, SessionFactory::CSBULK);
+//    EXPECT_EQ(settings2.SessionType, SessionFactory::CSBULK);
     EXPECT_EQ(settings2.Log, "stderr");
     EXPECT_TRUE(settings2.Console);
     EXPECT_EQ(settings2.WebServerUrl, QUrl("http://127.0.0.1:8000"));
@@ -82,11 +82,11 @@ namespace Tests {
     settings.LeaderId = Id();
     EXPECT_TRUE(settings.IsValid());
 
-    settings.SubgroupPolicy = static_cast<Group::SubgroupPolicy>(-1);
-    EXPECT_FALSE(settings.IsValid());
+//    settings.SubgroupPolicy = static_cast<Group::SubgroupPolicy>(-1);
+//    EXPECT_FALSE(settings.IsValid());
 
-    settings.SubgroupPolicy = Group::CompleteGroup;
-    EXPECT_TRUE(settings.IsValid());
+//    settings.SubgroupPolicy = Group::CompleteGroup;
+//    EXPECT_TRUE(settings.IsValid());
   }
 
   TEST(Settings, WebServer)

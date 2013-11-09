@@ -9,10 +9,10 @@
 #include <QxtCommandOptions>
 
 #include "Connections/Id.hpp"
-#include "Identity/Group.hpp"
+//#include "Identity/Group.hpp"
 
 #include "AuthFactory.hpp"
-#include "SessionFactory.hpp"
+//#include "SessionFactory.hpp"
 
 namespace Dissent {
 namespace Applications {
@@ -22,7 +22,7 @@ namespace Applications {
   class Settings {
     public:
       typedef Connections::Id Id;
-      typedef Identity::Group Group;
+//      typedef Identity::Group Group;
 
       /**
        * Load configuration from disk
@@ -85,7 +85,7 @@ namespace Applications {
       /**
        * The type of anonymity session / round to construct
        */
-      SessionFactory::SessionType SessionType;
+//      SessionFactory::SessionType SessionType;
 
       /**
        * Logging type: stderr, stdout, file, or empty (disabled)
@@ -146,7 +146,7 @@ namespace Applications {
       /**
        * The subgroup policy employed at this node
        */
-      Group::SubgroupPolicy SubgroupPolicy;
+//      Group::SubgroupPolicy SubgroupPolicy;
 
       /**
        * SuperPeer capable?

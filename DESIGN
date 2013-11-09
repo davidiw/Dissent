@@ -110,7 +110,7 @@ A -> B Init ([PeerId_A | I Nonce | Timestamp | GroupId]_[Signature_A])
 - I Nonce - QByteArray - Nonce used to ensure uniqueness of Init messages
 - Timestamp - 64-bit integer - Time since the "Epoch", ensure causality of
   Init messages
-- GroupId - QByteArray - The hash of the group information
+- GroupId - QByteArray - The hash of the group roster
 - Signature_A - QByteArray - Signature on [PeerId_A | Init Message |
   EphemeralPublicKey_A | Optional_A], should use A's well known public key
 
@@ -156,6 +156,10 @@ round identifier generation process. Currently, Servers currently employ the
 following process: RoundId = SHA1([Enlist]) ordered by the Id of the servers.
 Thus the ephemeral key in the Enlist message serves as a guarantee that under
 the anytrust model the RoundId has some randomness.
+
+Upon conclusion of producing a RoundId, servers distribute an Agree message,
+which contains most of the fields of the Enlist message; however, the Init
+Message will be replaced by the RoundId.
 
 A -> B Agree ([PeerId_A | RoundId | EphemeralPublicKey_A |
                Optional_A]_[Signature_A])
@@ -206,15 +210,13 @@ clients should prepare their round to receive messages but not process them.
 C -> S Register ([PeerId_C | RoundId | EphemeralPublicKey_C |
                   Optional_C]_[Signature_C])
 
-- PeerId_C - Connections::Id as QByteArray - Local Peer's overlay Id
+- PeerId_C - Connections::Id as QByteArray - Sender's overlay Id
 - RoundId_C - QByteArray - A identifier to use in the upcoming protocol round
 - EphemeralPublicKey_C - QByteArray of DSA key - The ephemeral key to
   be used in operations during protocol exchanges
 - Optional_C - QVariant - Additional data necessary for the protocol round
-- Signature_C - QByteArray - Depends on the authentication type, could be a
-  DSA signature from a pre-exchanged key, an LRS signature from an agreed
-  upon group of public keys, the format of the signature is depends on the
-  group configuration.
+- Signature_C - QByteArray - A public key signature using C's well-known public
+  key against PeerId_C, RoundId_C, EphemeralPublicKey_C, and Optional_C.
 
 Upon beginning the registration process, each server accepts registration
 messages for 5 minutes from their own prospective. After this registration
@@ -252,8 +254,8 @@ S -> C Start (ListOfRegister | VerifyListSignatures)
 
 Start - Complete List of Register | VerifyListSignatures
 - ListOfRegister - int | [ClientRegister] - List of all the Register messages
-- VerifyListSignatures - QVariantList - Set of all signatures for the
-  accumulated list
+- VerifyListSignatures - QVariantList - Set of server signatures for the
+  accumulated list of Register messages
 
 A protocol round constitutes one or more anonymous exchanges.  The protocol
 round continues for at least 1 exchange or 60 minutes, whichever is longer. At

@@ -7,7 +7,7 @@
 #include "Identity/Group.hpp"
 #include "Identity/GroupHolder.hpp"
 #include "Messaging/ISink.hpp"
-#include "Overlay/BaseOverlay.hpp"
+#include "ClientServer/Overlay.hpp"
 #include "Transports/Address.hpp"
 
 #include "AuthFactory.hpp"
@@ -30,20 +30,12 @@ namespace Applications {
       typedef Identity::Group Group;
       typedef Identity::GroupHolder GroupHolder;
       typedef Messaging::ISink ISink;
-      typedef Overlay::BaseOverlay BaseOverlay;
       typedef Transports::Address Address;
 
       typedef QSharedPointer<Node> (*CreateNode)(const PrivateIdentity &,
           const Group &, const QList<Address> &, const QList<Address> &,
           const QSharedPointer<ISink> &, SessionFactory::SessionType,
           AuthFactory::AuthType, const QSharedPointer<KeyShare> &keys);
-
-      static QSharedPointer<Node> CreateBasicGossip(const PrivateIdentity &ident,
-          const Group &group, const QList<Address> &local,
-          const QList<Address> &remote, const QSharedPointer<ISink> &sink,
-          SessionFactory::SessionType session,
-          AuthFactory::AuthType auth = AuthFactory::NULL_AUTH,
-          const QSharedPointer<KeyShare> &keys = QSharedPointer<KeyShare>());
 
       static QSharedPointer<Node> CreateClientServer(const PrivateIdentity &ident,
           const Group &group, const QList<Address> &local,
@@ -59,7 +51,7 @@ namespace Applications {
        */
       explicit Node(const PrivateIdentity &ident,
           const QSharedPointer<GroupHolder> &group_holder,
-          const QSharedPointer<BaseOverlay> &overlay,
+          const QSharedPointer<ClientServer::Overlay> &overlay,
           const QSharedPointer<Network> &network,
           const QSharedPointer<ISink> &sink,
           SessionFactory::SessionType stype,
@@ -71,21 +63,21 @@ namespace Applications {
        */
       virtual ~Node();
 
-      PrivateIdentity GetPrivateIdentity() const { return _ident; }
-      QSharedPointer<GroupHolder> GetGroupHolder() const { return _group_holder; }
-      Group GetGroup() const { return _group_holder->GetGroup(); }
-      QSharedPointer<Network> GetNetwork() { return _net; }
-      QSharedPointer<BaseOverlay> GetOverlay() { return _overlay; }
-      SessionManager &GetSessionManager() { return _sm; }
-      QSharedPointer<ISink> GetSink() const { return _sink; }
+      PrivateIdentity GetPrivateIdentity() const { return m_ident; }
+      QSharedPointer<GroupHolder> GetGroupHolder() const { return m_group_holder; }
+      Group GetGroup() const { return m_group_holder->GetGroup(); }
+      QSharedPointer<Network> GetNetwork() { return m_net; }
+      QSharedPointer<ClientServer::Overlay> GetOverlay() { return m_overlay; }
+      SessionManager &GetSessionManager() { return m_sm; }
+      QSharedPointer<ISink> GetSink() const { return m_sink; }
 
     private:
-      PrivateIdentity _ident;
-      QSharedPointer<GroupHolder> _group_holder;
-      QSharedPointer<BaseOverlay> _overlay;
-      QSharedPointer<Network> _net;
-      SessionManager _sm;
-      QSharedPointer<ISink> _sink;
+      PrivateIdentity m_ident;
+      QSharedPointer<GroupHolder> m_group_holder;
+      QSharedPointer<ClientServer::Overlay> m_overlay;
+      QSharedPointer<Network> m_net;
+      SessionManager m_sm;
+      QSharedPointer<ISink> m_sink;
   };
 }
 }

@@ -2,11 +2,7 @@
 #define DISSENT_SESSION_CLIENT_QUEUE_H_GUARD
 
 #include <QByteArray>
-#include <QDataStream>
-#include <QIODevice>
-#include <QVariant>
-
-#include "Connections/Id.hpp"
+#include "Messaging/Message.hpp"
 
 namespace Dissent {
 namespace Session {
@@ -15,23 +11,15 @@ namespace Session {
    * registration queue. Queue messages contain a client temporary nonce as a means
    * to authenticate the upstream servers to prevent replay attacks.
    */
-  class ClientQueue {
+  class ClientQueue : public Messaging::Message {
     public:
       /**
        * Constructor for packet and fields
        * @param packet packet or nonce
        */
-      explicit ClientQueue(const QByteArray &packet) :
-        m_packet(packet)
+      explicit ClientQueue(const QByteArray &packet)
       {
-      }
-
-      /**
-       * Returns the message as a byte array
-       */
-      QByteArray GetPacket() const
-      {
-        return m_packet;
+        SetPacket(packet);
       }
 
       /**
@@ -39,26 +27,14 @@ namespace Session {
        */
       QByteArray GetNonce() const
       {
-        return m_packet;
+        return GetPacket();
       }
 
-    private:
-      QByteArray m_packet;
+      /**
+       * Returns the message type
+       */
+      virtual qint8 GetMessageType() const { return 3; }
   };
-
-  inline QDataStream &operator<<(QDataStream &stream, const ClientQueue &packet)
-  {
-    stream << packet.GetPacket();
-    return stream;
-  }
-
-  inline QDataStream &operator>>(QDataStream &stream, ClientQueue &packet)
-  {
-    QByteArray data;
-    stream >> data;
-    packet = ClientQueue(data);
-    return stream;
-  }
 }
 }
 

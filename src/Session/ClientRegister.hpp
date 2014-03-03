@@ -2,7 +2,6 @@
 #define DISSENT_SESSION_CLIENT_REGISTER_H_GUARD
 
 #include <QByteArray>
-#include <QDataStream>
 #include <QIODevice>
 #include <QSharedPointer>
 #include <QVariant>
@@ -10,6 +9,7 @@
 #include "Connections/Id.hpp"
 #include "Crypto/AsymmetricKey.hpp"
 #include "Crypto/Serialization.hpp"
+#include "Messaging/Message.hpp"
 
 namespace Dissent {
 namespace Session {
@@ -20,16 +20,16 @@ namespace Session {
    * additional information necessary for the upcoming protocol. At this point,
    * clients should prepare their round to receive messages but not process them.
    */
-  class ClientRegister {
+  class ClientRegister : public Messaging::Message {
     public:
       /**
        * Constructor for packet
        * @param packet a ClientRegister in byte format
        */
-      explicit ClientRegister(const QByteArray &packet) :
-        m_packet(packet)
+      explicit ClientRegister(const QByteArray &packet)
       {
-        QDataStream stream0(m_packet);
+        SetPacket(packet);
+        QDataStream stream0(packet);
         stream0 >> m_payload >> m_signature;
 
         QDataStream stream(m_payload);
@@ -57,12 +57,9 @@ namespace Session {
       }
 
       /**
-       * Returns the message as a byte array
+       * Returns the message type
        */
-      QByteArray GetPacket() const
-      {
-        return m_packet;
-      }
+      virtual qint8 GetMessageType() const { return 5; }
 
       /**
        * Returns the message excluding the signature as a byte array,
@@ -119,12 +116,13 @@ namespace Session {
       void SetSignature(const QByteArray &signature)
       {
         m_signature = signature;
-        QDataStream stream(&m_packet, QIODevice::WriteOnly);
+        QByteArray packet;
+        QDataStream stream(&packet, QIODevice::WriteOnly);
         stream << m_payload << m_signature;
+        SetPacket(packet);
       }
 
     private:
-      QByteArray m_packet;
       QByteArray m_payload;
 
       Connections::Id m_peer_id;
@@ -134,20 +132,6 @@ namespace Session {
 
       QByteArray m_signature;
   };
-
-  inline QDataStream &operator<<(QDataStream &stream, const ClientRegister &packet)
-  {
-    stream << packet.GetPacket();
-    return stream;
-  }
-
-  inline QDataStream &operator>>(QDataStream &stream, ClientRegister &packet)
-  {
-    QByteArray data;
-    stream >> data;
-    packet = ClientRegister(data);
-    return stream;
-  }
 }
 }
 

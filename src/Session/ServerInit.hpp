@@ -8,6 +8,7 @@
 
 #include "Connections/Id.hpp"
 #include "Crypto/AsymmetricKey.hpp"
+#include "Messaging/Message.hpp"
 
 namespace Dissent {
 namespace Session {
@@ -17,16 +18,16 @@ namespace Session {
    * unique role of proposing the start of a round via an Init message to all
    * servers.
    */
-  class ServerInit {
+  class ServerInit : public Messaging::Message {
     public:
       /**
        * Constructor for packet
        * @param packet a ServerInit in byte format
        */
-      explicit ServerInit(const QByteArray &packet) :
-        m_packet(packet)
+      explicit ServerInit(const QByteArray &packet)
       {
-        QDataStream stream0(m_packet);
+        SetPacket(packet);
+        QDataStream stream0(packet);
         stream0 >> m_payload >> m_signature;
 
         QDataStream stream(m_payload);
@@ -54,12 +55,9 @@ namespace Session {
       }
 
       /**
-       * Returns the message as a byte array
+       * Returns the message type
        */
-      QByteArray GetPacket() const
-      {
-        return m_packet;
-      }
+      virtual qint8 GetMessageType() const { return 0; }
 
       /**
        * Returns the message excluding the signature as a byte array,
@@ -86,16 +84,25 @@ namespace Session {
         return m_peer_id;
       }
 
+      /**
+       * Time since the "Epoch", ensure causality of Init messages
+       */
       qint64 GetTimestamp() const
       {
         return m_timestamp;
       }
 
+      /**
+       * Nonce used to ensure uniqueness of Init messages
+       */
       QByteArray GetNonce() const
       {
         return m_nonce;
       }
 
+      /**
+       * Hash of the group roster
+       */
       QByteArray GetGroupId() const
       {
         return m_group_id;
@@ -107,12 +114,13 @@ namespace Session {
       void SetSignature(const QByteArray &signature)
       {
         m_signature = signature;
-        QDataStream stream(&m_packet, QIODevice::WriteOnly);
+        QByteArray packet;
+        QDataStream stream(&packet, QIODevice::WriteOnly);
         stream << m_payload << m_signature;
+        SetPacket(packet);
       }
 
     private:
-      QByteArray m_packet;
       QByteArray m_payload;
 
       Connections::Id m_peer_id;
@@ -122,20 +130,6 @@ namespace Session {
 
       QByteArray m_signature;
   };
-
-  inline QDataStream &operator<<(QDataStream &stream, const ServerInit &packet)
-  {
-    stream << packet.GetPacket();
-    return stream;
-  }
-
-  inline QDataStream &operator>>(QDataStream &stream, ServerInit &packet)
-  {
-    QByteArray data;
-    stream >> data;
-    packet = ServerInit(data);
-    return stream;
-  }
 }
 }
 

@@ -8,6 +8,7 @@
 
 #include "Connections/Id.hpp"
 #include "Crypto/AsymmetricKey.hpp"
+#include "Messaging/Message.hpp"
 
 #include "ServerInit.hpp"
 
@@ -23,16 +24,16 @@ namespace Session {
    * maintain state for out of order messages.
    *
    */
-  class ServerEnlist {
+  class ServerEnlist : public Messaging::Message {
     public:
       /**
        * Constructor for packet
        * @param packet a ServerEnlist in byte format
        */
-      explicit ServerEnlist(const QByteArray &packet) :
-        m_packet(packet)
+      explicit ServerEnlist(const QByteArray &packet)
       {
-        QDataStream stream0(m_packet);
+        SetPacket(packet);
+        QDataStream stream0(packet);
         stream0 >> m_payload >> m_signature;
 
         QDataStream stream(m_payload);
@@ -63,12 +64,9 @@ namespace Session {
       }
 
       /**
-       * Returns the message as a byte array
+       * Returns the message type
        */
-      QByteArray GetPacket() const
-      {
-        return m_packet;
-      }
+      virtual qint8 GetMessageType() const { return 1; }
 
       /**
        * Returns the message excluding the signature as a byte array,
@@ -125,12 +123,13 @@ namespace Session {
       void SetSignature(const QByteArray &signature)
       {
         m_signature = signature;
-        QDataStream stream(&m_packet, QIODevice::WriteOnly);
+        QByteArray packet;
+        QDataStream stream(&packet, QIODevice::WriteOnly);
         stream << m_payload << m_signature;
+        SetPacket(packet);
       }
 
     private:
-      QByteArray m_packet;
       QByteArray m_payload;
 
       Connections::Id m_peer_id;
@@ -140,20 +139,6 @@ namespace Session {
 
       QByteArray m_signature;
   };
-
-  inline QDataStream &operator<<(QDataStream &stream, const ServerEnlist &packet)
-  {
-    stream << packet.GetPacket();
-    return stream;
-  }
-
-  inline QDataStream &operator>>(QDataStream &stream, ServerEnlist &packet)
-  {
-    QByteArray data;
-    stream >> data;
-    packet = ServerEnlist(data);
-    return stream;
-  }
 }
 }
 

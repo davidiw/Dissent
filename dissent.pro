@@ -129,6 +129,7 @@ HEADERS += src/Dissent.hpp \
            src/Messaging/ISender.hpp \
            src/Messaging/ISink.hpp \
            src/Messaging/ISinkObject.hpp \
+           src/Messaging/Message.hpp \
            src/Messaging/Request.hpp \
            src/Messaging/RequestResponder.hpp \
            src/Messaging/RequestHandler.hpp \

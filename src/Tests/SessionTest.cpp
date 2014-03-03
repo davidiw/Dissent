@@ -137,9 +137,9 @@ namespace Tests {
 
     foreach(const QSharedPointer<BufferSink> &sink, sinks) {
       EXPECT_EQ(messages.size(), sink->Count());
-//      for(int idx = 0; idx < messages.count(); idx++) {
-//        EXPECT_EQ(messages[idx], sink->At(idx).second);
-//      }
+      for(int idx = 0; idx < messages.count(); idx++) {
+        EXPECT_EQ(messages[idx], sink->At(idx).second);
+      }
     }
   }
 

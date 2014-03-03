@@ -6,6 +6,8 @@
 #include <QIODevice>
 #include <QList>
 
+#include "Messaging/Message.hpp"
+
 #include "ServerAgree.hpp"
 #include "SerializeList.hpp"
 
@@ -16,16 +18,16 @@ namespace Session {
    * to these messages with a Queued message containing the accumulated Agree
    * messages exchanged by the servers.
    */
-  class ServerQueued {
+  class ServerQueued : public Messaging::Message {
     public:
       /**
        * Constructor for packet
        * @param packet a ServerQueued in byte format
        */
-      explicit ServerQueued(const QByteArray &packet) :
-        m_packet(packet)
+      explicit ServerQueued(const QByteArray &packet)
       {
-        QDataStream stream0(m_packet);
+        SetPacket(packet);
+        QDataStream stream0(packet);
         stream0 >> m_payload >> m_signature;
         QDataStream stream(m_payload);
         stream >> m_agree >> m_nonce;
@@ -50,12 +52,9 @@ namespace Session {
       }
 
       /**
-       * Returns the message as a byte array
+       * Returns the message type
        */
-      QByteArray GetPacket() const
-      {
-        return m_packet;
-      }
+      virtual qint8 GetMessageType() const { return 4; }
 
       /**
        * Returns the message excluding the signature as a byte array,
@@ -90,12 +89,13 @@ namespace Session {
       void SetSignature(const QByteArray &signature)
       {
         m_signature = signature;
-        QDataStream stream(&m_packet, QIODevice::WriteOnly);
+        QByteArray packet;
+        QDataStream stream(&packet, QIODevice::WriteOnly);
         stream << m_payload << m_signature;
+        SetPacket(packet);
       }
 
     private:
-      QByteArray m_packet;
       QByteArray m_payload;
 
       QList<QSharedPointer<ServerAgree> > m_agree_list;

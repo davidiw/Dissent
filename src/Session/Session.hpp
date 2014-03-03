@@ -171,12 +171,6 @@ namespace Session {
       virtual void HandleRoundFinished() = 0;
 
       /**
-       * Called when the session receives a valid stop message
-       * @param immediate stop the round now or after the current exchange
-       */
-      virtual void HandleStop(bool immediate) = 0;
-
-      /**
        * New incoming connection
        * @param con the connection
        */

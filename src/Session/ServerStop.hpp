@@ -8,6 +8,7 @@
 
 #include "Connections/Id.hpp"
 #include "Crypto/AsymmetricKey.hpp"
+#include "Messaging/Message.hpp"
 
 namespace Dissent {
 namespace Session {
@@ -19,16 +20,16 @@ namespace Session {
    * disconnects from any other server, that server immediately broadcasts a Stop
    * message with reason "Server disconnected x from y" and immediate set to true.
    */
-  class ServerStop {
+  class ServerStop : public Messaging::Message {
     public:
       /**
        * Constructor for packet
        * @param packet a ServerStop in byte format
        */
-      explicit ServerStop(const QByteArray &packet) :
-        m_packet(packet)
+      explicit ServerStop(const QByteArray &packet)
       {
-        QDataStream stream0(m_packet);
+        SetPacket(packet);
+        QDataStream stream0(packet);
         stream0 >> m_payload >> m_signature;
 
         QDataStream stream(m_payload);
@@ -53,12 +54,9 @@ namespace Session {
       }
 
       /**
-       * Returns the message as a byte array
+       * Returns the message type
        */
-      QByteArray GetPacket() const
-      {
-        return m_packet;
-      }
+      virtual qint8 GetMessageType() const { return 9; }
 
       /**
        * Returns the message excluding the signature as a byte array,
@@ -108,12 +106,13 @@ namespace Session {
       void SetSignature(const QByteArray &signature)
       {
         m_signature = signature;
-        QDataStream stream(&m_packet, QIODevice::WriteOnly);
+        QByteArray packet;
+        QDataStream stream(&packet, QIODevice::WriteOnly);
         stream << m_payload << m_signature;
+        SetPacket(packet);
       }
 
     private:
-      QByteArray m_packet;
       QByteArray m_payload;
 
       QByteArray m_round_id;

@@ -6,6 +6,8 @@
 #include <QIODevice>
 #include <QList>
 
+#include "Messaging/Message.hpp"
+
 #include "ClientRegister.hpp"
 #include "SerializeList.hpp"
 
@@ -16,16 +18,16 @@ namespace Session {
    * transmit a Start message to clients initiating the beginning of the protocol
    * round.
    */
-  class ServerStart {
+  class ServerStart : public Messaging::Message {
     public:
       /**
        * Constructor for packet
        * @param packet a ClientRegister in byte format
        */
-      explicit ServerStart(const QByteArray &packet) :
-        m_packet(packet)
+      explicit ServerStart(const QByteArray &packet)
       {
-        QDataStream stream(m_packet);
+        SetPacket(packet);
+        QDataStream stream(packet);
         stream >> m_register >> m_signatures;
 
         m_register_list = DeserializeList<ClientRegister>(m_register);
@@ -46,17 +48,16 @@ namespace Session {
             SerializeList<ClientRegister>(register_list) : register_data),
         m_signatures(signatures)
       {
-        QDataStream stream(&m_packet, QIODevice::WriteOnly);
+        QByteArray packet;
+        QDataStream stream(&packet, QIODevice::WriteOnly);
         stream << m_register << m_signatures;
+        SetPacket(packet);
       }
 
       /**
-       * Returns the message as a byte array
+       * Returns the message type
        */
-      QByteArray GetPacket() const
-      {
-        return m_packet;
-      }
+      virtual qint8 GetMessageType() const { return 8; }
 
       /**
        * Returns the list of signatures obtained from VerifyList
@@ -83,26 +84,10 @@ namespace Session {
       }
 
     private:
-      QByteArray m_packet;
-
       QList<QSharedPointer<ClientRegister> > m_register_list;
       QByteArray m_register;
       QList<QByteArray> m_signatures;
   };
-
-  inline QDataStream &operator<<(QDataStream &stream, const ServerStart &packet)
-  {
-    stream << packet.GetPacket();
-    return stream;
-  }
-
-  inline QDataStream &operator>>(QDataStream &stream, ServerStart &packet)
-  {
-    QByteArray data;
-    stream >> data;
-    packet = ServerStart(data);
-    return stream;
-  }
 }
 }
 

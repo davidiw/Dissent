@@ -8,43 +8,36 @@
 
 #include "Connections/Id.hpp"
 #include "Crypto/AsymmetricKey.hpp"
+#include "Messaging/Message.hpp"
 
 namespace Dissent {
 namespace Session {
-  class ServerVerifyList {
+  /**
+   * Upon receiving the List from all servers, a server constructs a complete list
+   * consisting of all clients, eliminating duplicate identities, and then hashes
+   * the resulting list.  Servers then sign the resulting list and share among each
+   * other their signatures via the VerifyList.
+   */
+  class ServerVerifyList : public Messaging::Message {
     public:
-      explicit ServerVerifyList(const QByteArray &packet) :
-        m_packet(packet)
+      explicit ServerVerifyList(const QByteArray &packet)
       {
+        SetPacket(packet);
       }
 
-      QByteArray GetPacket() const
-      {
-        return m_packet;
-      }
+      /**
+       * Returns the message type
+       */
+      virtual qint8 GetMessageType() const { return 7; }
 
+      /**
+       * Returns the signature
+       */
       QByteArray GetSignature() const
       {
-        return m_packet;
+        return GetPacket();
       }
-
-    private:
-      QByteArray m_packet;
   };
-
-  inline QDataStream &operator<<(QDataStream &stream, const ServerVerifyList &packet)
-  {
-    stream << packet.GetPacket();
-    return stream;
-  }
-
-  inline QDataStream &operator>>(QDataStream &stream, ServerVerifyList &packet)
-  {
-    QByteArray data;
-    stream >> data;
-    packet = ServerVerifyList(data);
-    return stream;
-  }
 }
 }
 

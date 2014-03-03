@@ -6,65 +6,85 @@
 #include <QIODevice>
 #include <QList>
 
+#include "Messaging/Message.hpp"
+
 #include "ClientRegister.hpp"
 #include "SerializeList.hpp"
 
 namespace Dissent {
 namespace Session {
-  class ServerList {
+  /**
+   * Upon beginning the registration process, each server accepts registration
+   * messages for 5 minutes from their own prospective. After this registration
+   * window, each server transmits their list of client registration messages to
+   * every other server, using the List message.
+   */
+  class ServerList : public Messaging::Message {
     public:
-      explicit ServerList(const QByteArray &packet) :
-        m_packet(packet)
+      /**
+       * Constructor for packet
+       * @param packet a ServerList in byte format
+       */
+      explicit ServerList(const QByteArray &packet)
       {
-        QDataStream stream0(m_packet);
+        SetPacket(packet);
+        QDataStream stream0(packet);
         stream0 >> m_payload >> m_signature;
         m_register_list = DeserializeList<ClientRegister>(m_payload);
       }
 
-      explicit ServerList(const QList<QSharedPointer<ClientRegister> > &register_list) :
-        m_register_list(register_list),
-        m_register(SerializeList<ClientRegister>(register_list))
-      {
-        m_payload = m_register;
-      }
-
+      /**
+       * Constructor using fields
+       * @param register_list list of clients
+       * @param list_data serialized list of clients
+       */
       explicit ServerList(const QList<QSharedPointer<ClientRegister> > &register_list,
-          const QByteArray &list_data) :
+          const QByteArray &list_data = QByteArray()) :
         m_register_list(register_list),
-        m_register(list_data)
+        m_register(list_data.isEmpty() ? SerializeList<ClientRegister>(register_list) : list_data)
       {
         m_payload = m_register;
       }
 
-      QByteArray GetPacket() const
-      {
-        return m_packet;
-      }
+      /**
+       * Returns the message type
+       */
+      virtual qint8 GetMessageType() const { return 6; }
 
       QByteArray GetPayload() const
       {
         return m_payload;
       }
 
+      /**
+       * Returns the signature
+       */
       QByteArray GetSignature() const
       {
         return m_signature;
       }
 
+      /**
+       * Returns the list of clients
+       */
       QList<QSharedPointer<ClientRegister> > GetRegisterList() const
       {
         return m_register_list;
       }
 
+      /**
+       * Sets the signature field and (re)builds the packet
+       */
       void SetSignature(const QByteArray &signature)
       {
         m_signature = signature;
-        QDataStream stream(&m_packet, QIODevice::WriteOnly);
+        QByteArray packet;
+        QDataStream stream(&packet, QIODevice::WriteOnly);
         stream << m_payload << m_signature;
+        SetPacket(packet);
       }
 
     private:
-      QByteArray m_packet;
       QByteArray m_payload;
 
       QList<QSharedPointer<ClientRegister> > m_register_list;
@@ -72,20 +92,6 @@ namespace Session {
 
       QByteArray m_signature;
   };
-
-  inline QDataStream &operator<<(QDataStream &stream, const ServerList &packet)
-  {
-    stream << packet.GetPacket();
-    return stream;
-  }
-
-  inline QDataStream &operator>>(QDataStream &stream, ServerList &packet)
-  {
-    QByteArray data;
-    stream >> data;
-    packet = ServerList(data);
-    return stream;
-  }
 }
 }
 

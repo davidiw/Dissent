@@ -78,6 +78,7 @@
 #include "Messaging/ISender.hpp"
 #include "Messaging/ISink.hpp"
 #include "Messaging/ISinkObject.hpp"
+#include "Messaging/Message.hpp"
 #include "Messaging/Request.hpp"
 #include "Messaging/RequestHandler.hpp"
 #include "Messaging/Response.hpp"

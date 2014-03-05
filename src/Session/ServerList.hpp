@@ -10,6 +10,7 @@
 
 #include "ClientRegister.hpp"
 #include "SerializeList.hpp"
+#include "SessionMessage.hpp"
 
 namespace Dissent {
 namespace Session {
@@ -49,7 +50,7 @@ namespace Session {
       /**
        * Returns the message type
        */
-      virtual qint8 GetMessageType() const { return 6; }
+      virtual qint8 GetMessageType() const { return SessionMessage::ServerList; }
 
       QByteArray GetPayload() const
       {

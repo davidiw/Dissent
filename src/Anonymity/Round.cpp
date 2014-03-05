@@ -34,32 +34,6 @@ namespace Anonymity {
     emit Finished();
   }
 
-  void Round::IncomingData(const Messaging::Request &notification)
-  {
-    if(Stopped()) {
-      qWarning() << "Received a message on a closed session:" << ToString();
-      return;
-    }
-
-    QSharedPointer<Connections::IOverlaySender> sender =
-      notification.GetFrom().dynamicCast<Connections::IOverlaySender>();
-
-    if(!sender) {
-      qDebug() << ToString() << " received wayward message from: " <<
-        notification.GetFrom()->ToString();
-      return;
-    }
-
-    const Connections::Id &id = sender->GetRemoteId();
-    if(!GetServers().Contains(id) && !GetClients().Contains(id)) {
-      qDebug() << ToString() << " received wayward message from: " <<
-        notification.GetFrom()->ToString();
-      return;
-    }
-
-    ProcessData(id, notification.GetData().toHash().value("data").toByteArray());
-  }
-
   bool Round::Verify(const Connections::Id &from,
       const QByteArray &data, QByteArray &msg)
   {

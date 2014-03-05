@@ -5,6 +5,10 @@
 #include "Utils/Timer.hpp"
 #include "Utils/TimerCallback.hpp"
 
+#include "DummyState.hpp"
+#include "ServerStates.hpp"
+
+#include "SessionData.hpp"
 #include "ServerList.hpp"
 #include "ServerStart.hpp"
 #include "ServerVerifyList.hpp"
@@ -19,6 +23,15 @@ namespace Session {
     Session(overlay, my_key, keys, create_round),
     m_state(OFFLINE)
   {
+    GetStateMachine().AddState(new Messaging::StateFactory<DummyState>(
+          SessionStates::ServerInit, SessionMessage::ServerInit));
+    GetStateMachine().AddState(new Messaging::StateFactory<ServerCommState>(
+          SessionStates::Communicating, SessionMessage::SessionData));
+    AddMessageParser(new Messaging::MessageParser<SessionData>(SessionMessage::SessionData));
+    GetStateMachine().SetState(SessionStates::ServerInit);
+    GetStateMachine().AddTransition(SessionStates::ServerInit, SessionStates::Communicating);
+    GetStateMachine().AddTransition(SessionStates::Communicating, SessionStates::ServerInit);
+
     GetOverlay()->GetRpcHandler()->Register("Init", this, "HandleInit");
     GetOverlay()->GetRpcHandler()->Register("Enlist", this, "HandleEnlist");
     GetOverlay()->GetRpcHandler()->Register("Agree", this, "HandleAgree");
@@ -51,6 +64,7 @@ namespace Session {
 
   void ServerSession::HandleRoundFinished()
   {
+    GetStateMachine().StateComplete();
     m_state = WAITING_FOR_SERVERS_AND_INIT;
 
     m_init.clear();
@@ -626,8 +640,9 @@ namespace Session {
     qDebug() << GetOverlay()->GetId() <<
       "ServerSession::VerifyList: finished, sending Start";
 
-    m_state = COMMUNICATING;
     NextRound();
+    GetStateMachine().StateComplete();
+    m_state = COMMUNICATING;
 
     ServerStart start(GetClients(), m_verify.values());
     Connections::ConnectionTable &ct = GetOverlay()->GetConnectionTable();

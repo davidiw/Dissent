@@ -22,6 +22,11 @@ namespace Messaging {
        */
       virtual qint8 GetMessageType() const = 0;
 
+      /**
+       * Bad message type
+       */
+      static qint8 GetBadMessageType() { return -1; }
+
     protected:
       explicit Message() {}
 
@@ -32,6 +37,73 @@ namespace Messaging {
 
     private:
       QByteArray m_packet;
+  };
+
+  class BadMessage : public Message
+  {
+    public:
+      explicit BadMessage() {}
+
+      /**
+       * Returns the message type
+       */
+      virtual qint8 GetMessageType() const { return GetBadMessageType(); }
+  };
+
+  class AbstractMessageParser {
+    public:
+      explicit AbstractMessageParser(qint8 msg_type) :
+        m_msg_type(msg_type)
+      {
+      }
+
+      virtual ~AbstractMessageParser() {}
+
+      virtual QSharedPointer<Message> ParseMessage(const QByteArray &packet) = 0;
+
+      int GetMessageType() const { return m_msg_type; }
+
+    private:
+      qint8 m_msg_type;
+  };
+
+  template<typename T> class MessageParser : public AbstractMessageParser {
+    public:
+      MessageParser(qint8 msg_type) : AbstractMessageParser(msg_type)
+      {
+      }
+
+      virtual QSharedPointer<Message> ParseMessage(const QByteArray &packet)
+      {
+        return QSharedPointer<Message>(new T(packet));
+      }
+  };
+
+  class MessageDemuxer {
+    public:
+      void AddParser(const QSharedPointer<AbstractMessageParser> &amp)
+      {
+        m_amps[amp->GetMessageType()] = amp;
+      }
+
+      void AddParser(AbstractMessageParser *amp)
+      {
+        m_amps[amp->GetMessageType()] = QSharedPointer<AbstractMessageParser>(amp);
+      }
+
+      QSharedPointer<Message> ParseMessage(const QByteArray &packet)
+      {
+        qint8 mtype = packet[0];
+        if(m_amps.contains(mtype)) {
+          return m_amps[mtype]->ParseMessage(packet);
+        } else {
+          static QSharedPointer<Message> bm(new BadMessage());
+          return bm;
+        }
+      }
+
+    private:
+      QHash<qint8, QSharedPointer<AbstractMessageParser> > m_amps;
   };
 }
 }

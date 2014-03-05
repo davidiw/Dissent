@@ -18,30 +18,37 @@ namespace Anonymity {
   {
     Round::OnStart();
     QPair<QByteArray, bool> data = GetData(1024);
-    QVariantHash hash;
-    hash["data"] = data.first;
-    hash["nonce"] = GetNonce();
-    GetOverlay()->Broadcast("SessionData", hash);
+    QByteArray msg = data.first;
+    msg.prepend(127);
+    GetOverlay()->Broadcast("SessionData", msg);
   }
 
-  void NullRound::ProcessData(const Connections::Id &id,
-      const QByteArray &data)
+  void NullRound::ProcessPacket(const Connections::Id &from, const QByteArray &data)
   {
+    if(Stopped()) {
+      qWarning() << "Received a message on a closed session:" << ToString();
+      return;
+    }
+
+    if(!GetServers().Contains(from) && !GetClients().Contains(from)) {
+      qDebug() << ToString() << " received wayward message from: " << from;
+      return;
+    }
+
     int idx = 0;
-    if(GetOverlay()->IsServer(id)) {
-      idx = GetServers().GetIndex(id);
+    if(GetOverlay()->IsServer(from)) {
+      idx = GetServers().GetIndex(from);
     } else {
-      idx = GetServers().Count() + GetClients().GetIndex(id);
+      idx = GetServers().Count() + GetClients().GetIndex(from);
     }
 
     if(!m_received[idx].isEmpty()) {
-      qWarning() << "Receiving a second message from: " << id.ToString();
+      qWarning() << "Receiving a second message from: " << from;
       return;
     }
 
     if(!data.isEmpty()) {
-      qDebug() << GetLocalId().ToString() << "received a real message from" <<
-        id.ToString();
+      qDebug() << GetLocalId().ToString() << "received a real message from" << from;
     }
 
     m_received[idx] = data;

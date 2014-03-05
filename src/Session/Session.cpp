@@ -12,15 +12,15 @@ namespace Session {
     m_overlay(overlay),
     m_my_key(my_key),
     m_keys(keys),
-    m_create_round(create_round)
+    m_create_round(create_round),
+    m_shared_state(new SessionSharedState()),
+    m_sm(m_shared_state)
   {
-    GetOverlay()->GetRpcHandler()->Register("Stop", this, "HandleStop");
-    GetOverlay()->GetRpcHandler()->Register("SessionData", this, "IncomingData");
+    GetOverlay()->GetRpcHandler()->Register("SessionData", this, "HandleData");
   }
 
   Session::~Session()
   {
-    GetOverlay()->GetRpcHandler()->Unregister("HandleStop");
     GetOverlay()->GetRpcHandler()->Unregister("SessionData");
   }
 
@@ -59,40 +59,40 @@ namespace Session {
     Identity::Roster clients(client_idents);
     Identity::Roster servers(server_idents);
 
-    qDebug() << "HMM" << server_idents.count() << client_idents.count() << clients.Count() << servers.Count();
-
     Crypto::DiffieHellman dh_key(GetOptionalPrivate().toByteArray(), false);
     Identity::PrivateIdentity my_ident(GetOverlay()->GetId(),
         GetEphemeralKey(), dh_key);
-    m_round = m_create_round(clients, servers, my_ident,
-        GetRoundId(), GetOverlay(), m_send_queue.GetCallback());
-    m_round->SetSink(this);
-    QObject::connect(GetRound().data(), SIGNAL(Finished()),
+    QSharedPointer<Anonymity::Round> round =
+      m_create_round(clients, servers, my_ident,
+          GetRoundId(), GetOverlay(), m_send_queue.GetCallback());
+    GetSharedState()->SetRound(round);
+    round->SetSink(this);
+    QObject::connect(round.data(), SIGNAL(Finished()),
         this, SLOT(HandleRoundFinishedSlot()));
 
     QList<Messaging::Request> msgs = m_round_queue;
     m_round_queue.clear();
-    foreach(const Messaging::Request &msg, msgs) {
-      m_round->IncomingData(msg);
-    }
+//    foreach(const Messaging::Request &msg, msgs) {
+//      m_round->IncomingData(msg);
+//    }
   }
 
   void Session::HandleRoundFinishedSlot()
   { 
     Anonymity::Round *round = qobject_cast<Anonymity::Round *>(sender());
-    if(round != m_round.data()) {
+    if(round != GetSharedState()->GetRound().data()) {
       qWarning() << "Received an awry Round Finished notification";
       return;
     }
   
     qDebug() << ToString() << "- round finished due to -" <<
-      m_round->GetStoppedReason();
+      round->GetStoppedReason();
     
-    if(!m_round->Successful()) {
+    if(!round->Successful()) {
       m_send_queue.UnGet();
     }
 
-    emit RoundFinished(m_round);
+    emit RoundFinished(GetSharedState()->GetRound());
   
     if(Stopped()) {
       qDebug() << "Session stopped.";
@@ -102,13 +102,15 @@ namespace Session {
     HandleRoundFinished();
   }
 
-  void Session::IncomingData(const Messaging::Request &notification)
+  void Session::HandleData(const Messaging::Request &notification)
   {
-    if(m_round && m_round->Started()) {
-      m_round->IncomingData(notification);
-    } else {
-      m_round_queue.append(notification);
+    QByteArray packet = notification.GetData().toByteArray();
+    QSharedPointer<Messaging::Message> msg = m_md.ParseMessage(packet);
+    if(msg->GetMessageType() == Messaging::Message::GetBadMessageType()) {
+      return;
     }
+
+    m_sm.ProcessData(notification.GetFrom(), msg);
   }
 
   void Session::HandleStop(const Messaging::Request &)

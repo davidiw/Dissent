@@ -138,11 +138,15 @@ HEADERS += src/Dissent.hpp \
            src/Messaging/RpcHandler.hpp \
            src/Messaging/SignalSink.hpp \
            src/Messaging/SinkMultiplexer.hpp \
+           src/Messaging/State.hpp \
+           src/Messaging/StateData.hpp \
+           src/Messaging/StateMachine.hpp \
            src/Messaging/Source.hpp \
            src/Messaging/SourceObject.hpp \
-           src/Session/ClientSession.hpp \
            src/Session/ClientQueue.hpp \
            src/Session/ClientRegister.hpp \
+           src/Session/ClientSession.hpp \
+           src/Session/ClientStates.hpp \
            src/Session/SerializeList.hpp \
            src/Session/ServerAgree.hpp \
            src/Session/ServerInit.hpp \
@@ -150,9 +154,13 @@ HEADERS += src/Dissent.hpp \
            src/Session/ServerQueued.hpp \
            src/Session/ServerSession.hpp \
            src/Session/ServerStart.hpp \
+           src/Session/ServerStates.hpp \
            src/Session/ServerStop.hpp \
            src/Session/ServerVerifyList.hpp \
            src/Session/Session.hpp \
+           src/Session/SessionMessage.hpp \
+           src/Session/SessionSharedState.hpp \
+           src/Session/SessionState.hpp \
            src/Transports/Address.hpp \
            src/Transports/AddressFactory.hpp \
            src/Transports/BufferAddress.hpp \

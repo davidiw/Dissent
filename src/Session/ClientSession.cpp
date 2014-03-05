@@ -2,8 +2,13 @@
 #include "ClientQueue.hpp"
 #include "ServerQueued.hpp"
 #include "ServerStart.hpp"
+#include "SessionData.hpp"
+
 #include "Crypto/CryptoRandom.hpp"
 #include "Crypto/Hash.hpp"
+
+#include "DummyState.hpp"
+#include "ClientStates.hpp"
 
 namespace Dissent {
 namespace Session {
@@ -16,6 +21,15 @@ namespace Session {
     m_nonce(Crypto::CryptoRandom::OptimalSeedSize(), 0),
     m_state(OFFLINE)
   {
+    GetStateMachine().AddState(new Messaging::StateFactory<DummyState>(
+          SessionStates::ServerInit, SessionMessage::ServerInit));
+    GetStateMachine().AddState(new Messaging::StateFactory<ClientCommState>(
+          SessionStates::Communicating, SessionMessage::SessionData));
+    AddMessageParser(new Messaging::MessageParser<SessionData>(SessionMessage::SessionData));
+    GetStateMachine().SetState(SessionStates::ServerInit);
+    GetStateMachine().AddTransition(SessionStates::ServerInit, SessionStates::Communicating);
+    GetStateMachine().AddTransition(SessionStates::Communicating, SessionStates::ServerInit);
+
     GetOverlay()->GetRpcHandler()->Register("Queued", this, "HandleQueued");
     GetOverlay()->GetRpcHandler()->Register("Start", this, "HandleStart");
   }
@@ -38,6 +52,7 @@ namespace Session {
 
   void ClientSession::HandleRoundFinished()
   {
+    GetStateMachine().StateComplete();
     m_state = WAITING_FOR_SERVER;
     CheckServer();
   }
@@ -178,6 +193,7 @@ namespace Session {
 
     SetClients(start.GetRegisterList());
     NextRound();
+    GetStateMachine().StateComplete();
     GetRound()->Start();
     emit RoundStarting(GetRound());
   }

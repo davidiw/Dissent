@@ -35,19 +35,18 @@ namespace Anonymity {
 
       inline virtual QString ToString() const { return "NullRound " + GetNonce().toBase64(); }
 
+      /**
+       * Handle a data message from a remote peer
+       * @param from The remote sender
+       * @param msg The message
+       */
+      virtual void ProcessPacket(const Connections::Id &from, const QByteArray &msg);
+
     protected:
       /**
        * Called when the NullRound is started
        */
       virtual void OnStart();
-
-      /**
-       * Pushes the data into the subscribed Sink
-       * @param data the data to push
-       * @param id the source of the data
-       */
-      virtual void ProcessData(const Connections::Id &id,
-          const QByteArray &data);
 
     private:
       /**

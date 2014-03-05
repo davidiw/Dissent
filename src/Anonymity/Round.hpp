@@ -62,9 +62,10 @@ namespace Anonymity {
 
       /**
        * Handle a data message from a remote peer
-       * @param notification message from a remote peer
+       * @param from The remote sender
+       * @param msg The message
        */
-      virtual void IncomingData(const Messaging::Request &notification);
+      virtual void ProcessPacket(const Connections::Id &from, const QByteArray &msg) = 0;
 
       /**
        * Returns whether or not there were any problems in the round
@@ -165,13 +166,6 @@ namespace Anonymity {
        * Called on Round Stop
        */
       virtual void OnStop();
-
-      /**
-       * If data is from a legitimate group member, it is processed
-       * @param data Incoming data
-       * @param id the remote peer sending the data
-       */
-      virtual void ProcessData(const Connections::Id &id, const QByteArray &data) = 0;
 
       /**
        * Verifies that the provided data has a signature block and is properly

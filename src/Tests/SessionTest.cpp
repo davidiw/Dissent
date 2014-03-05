@@ -20,8 +20,8 @@ namespace Tests {
             shared_key.GetGenerator()));
       keys->AddKey(server->GetId().ToString(), key);
 
-      ServerPointer ss = ServerPointer(new ServerSession(
-            server, key, keys, TCreateRound<NullRound>));
+      ServerPointer ss = MakeSession<ServerSession>(
+            server, key, keys, TCreateRound<NullRound>);
       servers.append(ss);
     }
 
@@ -32,8 +32,8 @@ namespace Tests {
             shared_key.GetGenerator()));
       keys->AddKey(client->GetId().ToString(), key);
 
-      ClientPointer cs = ClientPointer(new ClientSession(
-            client, key, keys, TCreateRound<NullRound>));
+      ClientPointer cs = MakeSession<ClientSession>(
+            client, key, keys, TCreateRound<NullRound>);
       clients.append(cs);
     }
     

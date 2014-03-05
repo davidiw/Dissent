@@ -11,6 +11,8 @@
 #include "Crypto/Serialization.hpp"
 #include "Messaging/Message.hpp"
 
+#include "SessionMessage.hpp"
+
 namespace Dissent {
 namespace Session {
   /**
@@ -59,7 +61,7 @@ namespace Session {
       /**
        * Returns the message type
        */
-      virtual qint8 GetMessageType() const { return 5; }
+      virtual qint8 GetMessageType() const { return SessionMessage::ClientRegister; }
 
       /**
        * Returns the message excluding the signature as a byte array,

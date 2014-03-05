@@ -10,6 +10,7 @@
 
 #include "ClientRegister.hpp"
 #include "SerializeList.hpp"
+#include "SessionMessage.hpp"
 
 namespace Dissent {
 namespace Session {
@@ -57,7 +58,7 @@ namespace Session {
       /**
        * Returns the message type
        */
-      virtual qint8 GetMessageType() const { return 8; }
+      virtual qint8 GetMessageType() const { return SessionMessage::ServerStart; }
 
       /**
        * Returns the list of signatures obtained from VerifyList

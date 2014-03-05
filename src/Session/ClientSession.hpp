@@ -13,26 +13,22 @@
 
 namespace Dissent {
 namespace Session {
+  class ClientCommState;
+
   /**
    * Used to filter incoming messages across many sessions.
    */
   class ClientSession : public Session {
     Q_OBJECT
 
-    public:
-      /**
-       * Constructor
-       * @param overlay used to pass messages to other participants
-       * @param my_key local nodes private key
-       * @param keys public keys for all participants
-       * @param create_round callback for creating rounds
-       */
-      explicit ClientSession(
-          const QSharedPointer<ClientServer::Overlay> &overlay,
-          const QSharedPointer<Crypto::AsymmetricKey> &my_key,
-          const QSharedPointer<Crypto::KeyShare> &keys,
-          Anonymity::CreateRound create_round);
+    friend ClientCommState;
+    friend QSharedPointer<ClientSession> MakeSession<ClientSession>(
+      const QSharedPointer<ClientServer::Overlay> &,
+      const QSharedPointer<Crypto::AsymmetricKey> &,
+      const QSharedPointer<Crypto::KeyShare> &,
+      Anonymity::CreateRound);
 
+    public:
       /**
        * Deconstructor
        */
@@ -47,6 +43,19 @@ namespace Session {
       };
 
     protected:
+      /**
+       * Constructor
+       * @param overlay used to pass messages to other participants
+       * @param my_key local nodes private key
+       * @param keys public keys for all participants
+       * @param create_round callback for creating rounds
+       */
+      explicit ClientSession(
+          const QSharedPointer<ClientServer::Overlay> &overlay,
+          const QSharedPointer<Crypto::AsymmetricKey> &my_key,
+          const QSharedPointer<Crypto::KeyShare> &keys,
+          Anonymity::CreateRound create_round);
+
       /**
        * Called when the session is started
        */

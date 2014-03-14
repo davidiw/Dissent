@@ -78,8 +78,7 @@ followed by an overlay-level connection.  The owner of the incoming connection
 transmits an Inquire message and the outgoing connection owner responds with an
 Inquired; these messages establish the overlay Id of each peer.
 
-I -> O Inquire (PeerId_I | TransportAddress_O |
-                GroupId | DissentVersion)
+I -> O Inquire (PeerId_I | TransportAddress_O | DissentVersion)
 
 - PeerId_I - Connections:Id as QByteArray - Inbound overlay Id
 - TransportAddress_O - Transports::Address as a QString - Outbound Transport
@@ -231,31 +230,32 @@ List - [ListOfRegister_A]_[Signature_A]
 - Signature_A - QByteArray - Signature on QByteArray format of the List of
   Register
 
-Upon receiving the List from all servers, a server constructs a complete list
-consisting of all clients, eliminating duplicate identities, and then hashes
-the resulting list.  Servers then sign the resulting list and share among each
-other their signatures via the VerifyList.  Clients authenticating with
-multiple servers and using different entries for each server are removed.
-Since this process is deterministic, servers need not share the list. Prior to
-sending the VerifyList, servers should prepare to receive protocol round
-messages.
+Upon receiving the List from all servers, a server computes the union of all
+ListOfRegisters, eliminates duplicates by favoring the server ordered earlier
+in the configuration file and then hashes the resulting list.  Servers then
+sign the resulting list and share among each other their signatures via the
+VerifyList.  Clients authenticating with multiple servers and using different
+entries for each server are removed.  Since this process is deterministic,
+servers need not share the list. Prior to sending the VerifyList, servers
+should prepare to receive protocol round messages.
 
-A -> B VerifyList (Signature_A(ListOfRegister))
+A -> B VerifyList (Signature_A(CompleteListOfRegister))
 
 VerifyList - Signature on Complete List of Register
-- Signature_A - QByteArray - Signature on the hashed accumulated List of Register
+- Signature_A - QByteArray - Signature on the hashed Complete List of Register
 
 Upon receiving all signatures, servers can begin the round and simultaneously
 transmit a Start message to clients initiating the beginning of the protocol
 round.  A client registering with multiple servers remains connected to the
 server with the lowest Id specified in the configuration.
 
-S -> C Start (ListOfRegister | VerifyListSignatures)
+S -> C Start (CompleteListOfRegister | VerifyListSignatures)
 
 Start - Complete List of Register | VerifyListSignatures
-- ListOfRegister - int | [ClientRegister] - List of all the Register messages
+- CompleteListOfRegister - int | [ClientRegister] - List of all the
+  Register messages
 - VerifyListSignatures - QVariantList - Set of server signatures for the
-  accumulated list of Register messages
+  complete list of Register messages
 
 A protocol round constitutes one or more anonymous exchanges.  The protocol
 round continues for at least 1 exchange or 60 minutes, whichever is longer. At
@@ -294,7 +294,6 @@ TODO
 Protocol -- Verifiable DC-nets:
 
 TODO
-
 
 ==============================================================================
 VI.   Technical notes

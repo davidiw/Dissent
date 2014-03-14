@@ -14,9 +14,13 @@ namespace Messaging {
   class StateMachine {
     public:
       explicit StateMachine(const QSharedPointer<StateData> &data) :
-        m_data(data)
+        m_data(data),
+        m_state_change(new Utils::Callback<StateMachine, State::ProcessResult>(
+              this, &StateMachine::StateChangeCallback))
       {
       }
+
+      virtual ~StateMachine() { }
 
       /**
        * Adds a state to the state machine
@@ -50,36 +54,74 @@ namespace Messaging {
       void ProcessData(const QSharedPointer<ISender> &from,
           const QSharedPointer<Message> &msg)
       {
-        State::PacketResult pr = m_cstate->CheckPacket(msg);
-        if(pr == State::Ignore) {
-          return;
-        } else if(pr == State::Store) {
-          m_storage.append(MsgPair(from, msg));
-          return;
+        State::ProcessResult pr = m_cstate->CheckPacket(msg);
+        switch(pr) {
+          case State::StoreMessage:
+            m_storage.append(MsgPair(from, msg));
+          case State::Ignore:
+            return;
+          case State::ProcessMessage:
+            break;
+          default:
+            qFatal("Invalid ProcessResult");
         }
 
-        State::ProcessResult rr = State::NoChange;
+        pr = State::NoChange;
         try {
-          rr = m_cstate->ProcessPacket(from, msg);
+          pr = m_cstate->ProcessPacket(from, msg);
         } catch (Utils::QRunTimeError &err) {
-          // to indx id from indx id state exception
-          qWarning() << err.What();
+          PrintError(from, err);
         }
 
-        if(rr == State::NoChange) {
-          return;
-        } else if(rr == State::NextState) {
-          StateComplete();
-        } else if(rr == State::Finished) {
-          m_cstate = m_states[m_finished]->NewState(m_data);
-        }
+        ResultProcessor(pr);
       }
 
       void StateComplete()
       {
         int cstate = m_cstate->GetState();
         int nstate = m_transitions[cstate];
-        m_cstate = m_states[nstate]->NewState(m_data);
+        SetNewState(nstate);
+      }
+
+      void SetState(qint8 state)
+      {
+        if(!m_states.contains(state)) {
+          return;
+        }
+        SetNewState(state);
+      }
+
+      void SetRestartState(qint8 state)
+      {
+        m_restart = state;
+      }
+
+    protected:
+      void ResultProcessor(State::ProcessResult pr)
+      {
+        switch(pr) {
+          case State::NoChange:
+            return;
+          case State::NextState:
+            StateComplete();
+            break;
+          case State::Restart:
+            SetNewState(m_restart);
+            break;
+          default:
+            qFatal("Invalid ProcessResult");
+        }
+      }
+
+      void SetNewState(int state)
+      {
+        if(m_cstate) {
+          m_cstate->UnsetStateChangeHandler();
+        }
+        QSharedPointer<State> cstate = GetCurrentState();
+        m_cstate = m_states[state]->NewState(m_data);
+        m_cstate->SetStateChangeHandler(m_state_change);
+        ResultProcessor(GetCurrentState()->Init());
 
         QList<MsgPair> msgs = m_storage;
         m_storage.clear();
@@ -88,20 +130,24 @@ namespace Messaging {
         }
       }
 
-      void SetState(qint8 state)
-      {
-        if(!m_states.contains(state)) {
-          return;
-        }
-        m_cstate = m_states[state]->NewState(m_data);
-      }
+      QSharedPointer<State> GetCurrentState() { return m_cstate; }
+      QSharedPointer<State> GetCurrentState() const { return m_cstate; }
 
-      void SetFinishedState(qint8 state)
-      {
-        m_finished = state;
-      }
+      QSharedPointer<StateData> GetStateData() { return m_data; }
+      QSharedPointer<StateData> GetStateData() const { return m_data; }
 
     private:
+      virtual void PrintError(const QSharedPointer<ISender> &from,
+          const Utils::QRunTimeError &err) const
+      {
+        qWarning() << from << err.What();
+      }
+
+      void StateChangeCallback(State::ProcessResult pr)
+      {
+        ResultProcessor(pr);
+      }
+
       QSharedPointer<StateData> m_data;
       QHash<qint8, QSharedPointer<AbstractStateFactory> > m_states;
       QHash<qint8, qint8> m_transitions;
@@ -109,7 +155,8 @@ namespace Messaging {
 
       typedef QPair<QSharedPointer<ISender>, QSharedPointer<Message> > MsgPair;
       QList<MsgPair> m_storage;
-      qint8 m_finished;
+      qint8 m_restart;
+      State::StateChangeHandler m_state_change;
   };
 }
 }

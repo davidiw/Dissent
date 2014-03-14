@@ -5,6 +5,8 @@
 #include <QObject>
 #include <QString>
 
+#include "Messaging/Message.hpp"
+
 namespace Dissent {
 namespace Session {
   /**
@@ -16,10 +18,10 @@ namespace Session {
 
     public:
       enum Names {
+        None = Messaging::Message::BadMessageType,
         ServerInit = 0,
         ServerEnlist,
         ServerAgree,
-        ClientQueue,
         ServerQueued,
         ClientRegister,
         ServerList,
@@ -33,7 +35,7 @@ namespace Session {
        * Converts a MessageType into a QString
        * @param mt value to convert
        */
-      static QString MessageTypeToString(int type)
+      static QString MessageTypeToString(qint8 type)
       {
         int index = staticMetaObject.indexOfEnumerator("Names");
         return staticMetaObject.enumerator(index).valueToKey(type);

@@ -2,6 +2,8 @@
 #define DISSENT_MESSAGING_MESSAGE_H_GUARD
 
 #include <QByteArray>
+#include <QHash>
+#include <QSharedPointer>
 
 namespace Dissent {
 namespace Messaging {
@@ -25,7 +27,9 @@ namespace Messaging {
       /**
        * Bad message type
        */
-      static qint8 GetBadMessageType() { return -1; }
+      static qint8 GetBadMessageType() { return BadMessageType; }
+
+      static const int BadMessageType = -1;
 
     protected:
       explicit Message() {}

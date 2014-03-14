@@ -143,12 +143,12 @@ HEADERS += src/Dissent.hpp \
            src/Messaging/StateMachine.hpp \
            src/Messaging/Source.hpp \
            src/Messaging/SourceObject.hpp \
-           src/Session/ClientQueue.hpp \
            src/Session/ClientRegister.hpp \
            src/Session/ClientSession.hpp \
            src/Session/ClientStates.hpp \
            src/Session/SerializeList.hpp \
            src/Session/ServerAgree.hpp \
+           src/Session/ServerEnlist.hpp \
            src/Session/ServerInit.hpp \
            src/Session/ServerList.hpp \
            src/Session/ServerQueued.hpp \
@@ -158,6 +158,7 @@ HEADERS += src/Dissent.hpp \
            src/Session/ServerStop.hpp \
            src/Session/ServerVerifyList.hpp \
            src/Session/Session.hpp \
+           src/Session/SessionData.hpp \
            src/Session/SessionMessage.hpp \
            src/Session/SessionSharedState.hpp \
            src/Session/SessionState.hpp \
@@ -246,6 +247,7 @@ SOURCES += src/Anonymity/NullRound.cpp \
            src/Session/ClientSession.cpp \
            src/Session/ServerSession.cpp \
            src/Session/Session.cpp \
+           src/Session/SessionSharedState.cpp \
            src/Transports/Address.cpp \
            src/Transports/AddressFactory.cpp \
            src/Transports/BufferAddress.cpp \

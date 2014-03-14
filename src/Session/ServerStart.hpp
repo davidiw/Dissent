@@ -29,7 +29,9 @@ namespace Session {
       {
         SetPacket(packet);
         QDataStream stream(packet);
-        stream >> m_register >> m_signatures;
+        qint8 message_type;
+        stream >> message_type >> m_register >> m_signatures;
+        Q_ASSERT(message_type == GetMessageType());
 
         m_register_list = DeserializeList<ClientRegister>(m_register);
       }
@@ -51,7 +53,7 @@ namespace Session {
       {
         QByteArray packet;
         QDataStream stream(&packet, QIODevice::WriteOnly);
-        stream << m_register << m_signatures;
+        stream << GetMessageType() << m_register << m_signatures;
         SetPacket(packet);
       }
 

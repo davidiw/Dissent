@@ -22,9 +22,16 @@ namespace Session {
    */
   class ServerVerifyList : public Messaging::Message {
     public:
-      explicit ServerVerifyList(const QByteArray &packet)
+      explicit ServerVerifyList(const QByteArray &packet, bool data = false)
       {
-        SetPacket(packet);
+        QByteArray spacket = packet;
+        if(data) {
+          m_signature = packet;
+          spacket = spacket.prepend(GetMessageType());
+        } else {
+          m_signature = packet.mid(1);
+        }
+        SetPacket(spacket);
       }
 
       /**
@@ -37,8 +44,11 @@ namespace Session {
        */
       QByteArray GetSignature() const
       {
-        return GetPacket();
+        return m_signature;
       }
+
+    private:
+      QByteArray m_signature;
   };
 }
 }

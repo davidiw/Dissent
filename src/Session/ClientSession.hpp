@@ -34,14 +34,6 @@ namespace Session {
        */
       virtual ~ClientSession();
 
-      enum States {
-        OFFLINE = 0,
-        WAITING_FOR_SERVER,
-        QUEUING,
-        REGISTERING,
-        COMMUNICATING
-      };
-
     protected:
       /**
        * Constructor
@@ -57,16 +49,6 @@ namespace Session {
           Anonymity::CreateRound create_round);
 
       /**
-       * Called when the session is started
-       */
-      virtual void OnStart();
-
-      /**
-       * Called when the session is stopped
-       */
-      virtual void OnStop();
-
-      /**
        * Called when a round has been finished to prepare for the next round
        */
       virtual void HandleRoundFinished();
@@ -76,47 +58,6 @@ namespace Session {
        * @param con the connection
        */
       virtual void HandleConnection(const QSharedPointer<Connections::Connection> &con);
-
-      /**
-       * The disconnected connection
-       * @param con the connection
-       */
-      virtual void HandleDisconnect(const QSharedPointer<Connections::Connection> &con);
-
-    private:
-      /**
-       * Checks to see if connected to a server and starts the client process if so
-       */
-      void CheckServer();
-
-      /**
-       * Sends the ClientQueue message to the upstream server
-       */
-      void SendQueue();
-
-      /**
-       * Sends the ClientRegister message to the upstream server
-       */
-      void SendRegister();
-
-      QSharedPointer<Connections::Connection> m_server;
-      QByteArray m_nonce;
-      States m_state;
-
-      typedef Messaging::Request Request;
-
-    private slots:
-      /**
-       * Handles the ServerQueued message
-       * @param notification contains the ServerQueued message
-       */
-      void HandleQueued(const Request &notification);
-
-      /**
-       * Handles the ServerStart message
-       * @param notification contains the ServerStart message
-       */
-      void HandleStart(const Request &notification);
   };
 }
 }

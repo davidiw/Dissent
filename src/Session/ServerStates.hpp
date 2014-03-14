@@ -6,11 +6,11 @@
 #include "Connections/IOverlaySender.hpp"
 #include "Messaging/ISender.hpp"
 #include "Messaging/State.hpp"
-#include "Messaging/StateData.hpp"
 #include "Utils/QRunTimeError.hpp"
 
 #include "SessionData.hpp"
 #include "SessionMessage.hpp"
+#include "SessionSharedState.hpp"
 #include "SessionState.hpp"
 
 namespace Dissent {
@@ -50,7 +50,6 @@ namespace Session {
     private:
       virtual bool StorePacket(const QSharedPointer<Messaging::Message> &msg) const
       {
-        qDebug() << "WAAH" << msg->GetMessageType() << SessionMessage::ServerInit;
         // Verify this is a valid packet
         return (msg->GetMessageType() == SessionMessage::ServerInit);
       }

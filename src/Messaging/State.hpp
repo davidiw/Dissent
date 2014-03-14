@@ -2,6 +2,7 @@
 #define DISSENT_MESSAGING_ABSTRACT_STATE_H_GUARD
 
 #include <QSharedPointer>
+#include "Utils/Callback.hpp"
 #include "ISender.hpp"
 #include "StateData.hpp"
 #include "Message.hpp"
@@ -11,22 +12,14 @@ namespace Messaging {
   class State {
     public:
       /**
-       * Result of checking a packet
-       */
-      enum PacketResult {
-        Ignore,
-        Process,
-        Store,
-        Restart
-      };
-
-      /**
        * Result of processing a packet
        */
       enum ProcessResult {
+        Ignore,
         NoChange,
         NextState,
-        Finished,
+        Restart,
+        ProcessMessage,
         StoreMessage
       };
 
@@ -46,16 +39,21 @@ namespace Messaging {
 
       virtual ~State() {}
 
+      virtual ProcessResult Init()
+      {
+        return NoChange;
+      }
+
       /**
        * Checks to see what to do with this message
        * @param msg The message to check
        */
-      PacketResult CheckPacket(const QSharedPointer<Message> &msg)
+      virtual ProcessResult CheckPacket(const QSharedPointer<Message> &msg)
       {
         if(m_msg_type == msg->GetMessageType()) {
-          return Process;
+          return ProcessMessage;
         } else if(StorePacket(msg)) {
-          return Store;
+          return StoreMessage;
         } else if(RestartPacket(msg)) {
           return Restart;
         } else {
@@ -85,6 +83,18 @@ namespace Messaging {
        */
       QSharedPointer<StateData> GetStateData() const { return m_data; }
 
+      typedef QSharedPointer<Utils::BaseCallback<ProcessResult> > StateChangeHandler;
+      void SetStateChangeHandler(const StateChangeHandler &handler) { m_state_change = handler; }
+      void UnsetStateChangeHandler() { m_state_change.clear(); }
+
+    protected:
+      void StateChange(ProcessResult pr)
+      {
+        if(m_state_change) {
+          m_state_change->Invoke(pr);
+        }
+      }
+
     private:
       /**
        * @param msg
@@ -96,9 +106,14 @@ namespace Messaging {
        */
       virtual bool RestartPacket(const QSharedPointer<Message> &msg) const = 0;
 
+      /**
+       * @param msg
+       */
+
       QSharedPointer<StateData> m_data;
       qint8 m_state;
       qint8 m_msg_type;
+      StateChangeHandler m_state_change;
   };
 
   class AbstractStateFactory {

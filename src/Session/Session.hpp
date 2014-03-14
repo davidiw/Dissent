@@ -14,12 +14,14 @@
 #include "Messaging/FilterObject.hpp"
 #include "Messaging/Message.hpp"
 #include "Messaging/State.hpp"
+#include "Messaging/StateData.hpp"
 #include "Messaging/StateMachine.hpp"
 #include "Messaging/Request.hpp"
 
 #include "ClientRegister.hpp"
 #include "ServerAgree.hpp"
 #include "SessionSharedState.hpp"
+#include "SessionState.hpp"
 
 namespace Dissent {
 namespace Session {
@@ -80,15 +82,9 @@ namespace Session {
     protected:
       /**
        * Constructor
-       * @param overlay used to pass messages to other participants
-       * @param my_key local nodes private key
-       * @param keys public keys for all participants
-       * @param create_round callback for creating rounds
+       * @param shared_state session private state
        */
-      explicit Session(const QSharedPointer<ClientServer::Overlay> &overlay,
-          const QSharedPointer<Crypto::AsymmetricKey> &my_key,
-          const QSharedPointer<Crypto::KeyShare> &keys,
-          Anonymity::CreateRound create_round);
+      explicit Session(const QSharedPointer<SessionSharedState> &shared_state);
 
       /**
        * Set the shared pointer
@@ -96,24 +92,14 @@ namespace Session {
       void SetSharedPointer(const QSharedPointer<Session> &shared) { m_shared = shared.toWeakRef(); }
 
       /**
-       * Returns the local node's private key
+       * Returns the overlay
        */
-      QSharedPointer<Crypto::AsymmetricKey> GetPrivateKey() const { return m_my_key; }
-      
-      /**
-       * Returns the set of public keys for all participants
-       */
-      QSharedPointer<Crypto::KeyShare> GetKeyShare() const { return m_keys; } 
+      QSharedPointer<ClientServer::Overlay> GetOverlay() { return GetSharedState()->GetOverlay(); }
 
       /**
        * Returns the overlay
        */
-      QSharedPointer<ClientServer::Overlay> GetOverlay() { return m_overlay; }
-
-      /**
-       * Returns the overlay
-       */
-      QSharedPointer<ClientServer::Overlay> GetOverlay() const { return m_overlay; }
+      QSharedPointer<ClientServer::Overlay> GetOverlay() const { return GetSharedState()->GetOverlay(); }
 
       /**
        * Returns the shared state object
@@ -126,75 +112,13 @@ namespace Session {
       QSharedPointer<SessionSharedState> GetSharedState() const { return m_shared_state; }
 
       /**
-       * Returns the current round
-       */
-      QSharedPointer<Anonymity::Round> GetRound() const { return GetSharedState()->GetRound(); }
-
-      /**
        * Builds the next round
        */
       void NextRound();
  
       /**
-       * Returns the upcoming or current rounds Round Id
        */
-      QByteArray GetRoundId() const { return m_round_id; }
-
-      /**
-       * Sets the upcoming rounds Round Id
-       */
-      void SetRoundId(const QByteArray &round_id) { m_round_id = round_id; }
-
-      /**
-       * Generates round data for the upcoming round, including ephemeral signing key
-       * and in some cases a DiffieHellman key.
-       */
-      void GenerateRoundData();
-
-      /**
-       * Returns the ephemeral round key
-       */
-      QSharedPointer<Crypto::AsymmetricKey> GetEphemeralKey() const { return m_ephemeral_key; }
-
-      /**
-       * Returns the public component of the round's optional data
-       */
-      QVariant GetOptionalPublic() const { return m_optional_public; }
-
-      /**
-       * Returns the private component of the round's optional data
-       */
-      QVariant GetOptionalPrivate() const { return m_optional_private; }
-
-      /**
-       * Verifies that the ServerAgree is properly formed
-       */
-      bool CheckServerAgree(const ServerAgree &agree);
-
-      /**
-       * Returns the list of servers
-       */
-      QList<QSharedPointer<ServerAgree> > GetServers() { return m_server_list; }
-      
-      /**
-       * Sets the list of servers
-       */
-      void SetServers(const QList<QSharedPointer<ServerAgree> > &servers) { m_server_list = servers; }
-
-      /**
-       * Returns the list of clients
-       */
-      QList<QSharedPointer<ClientRegister> > GetClients() { return m_client_list; }
-
-      /**
-       * Sets the list of clients
-       */
-      void SetClients(const QList<QSharedPointer<ClientRegister> > &clients) { m_client_list = clients; }
-
-      Messaging::StateMachine &GetStateMachine()
-      {
-        return m_sm;
-      }
+      SessionStateMachine &GetStateMachine() { return m_sm; }
 
       /**
        */
@@ -202,6 +126,8 @@ namespace Session {
       {
         m_md.AddParser(QSharedPointer<Messaging::AbstractMessageParser>(amp));
       }
+
+      virtual void OnStart();
 
     private:
       /**
@@ -223,22 +149,8 @@ namespace Session {
       virtual void HandleDisconnect(
           const QSharedPointer<Connections::Connection> &con);
 
-      QSharedPointer<ClientServer::Overlay> m_overlay;
-      QSharedPointer<Crypto::AsymmetricKey> m_my_key;
-      QSharedPointer<Crypto::KeyShare> m_keys;
-      Anonymity::CreateRound m_create_round;
-
-      QSharedPointer<Crypto::AsymmetricKey> m_ephemeral_key;
-      QVariant m_optional_public;
-      QVariant m_optional_private;
-      QByteArray m_round_id;
-      QList<Messaging::Request> m_round_queue;
-
-      QList<QSharedPointer<ServerAgree> > m_server_list;
-      QList<QSharedPointer<ClientRegister> > m_client_list;
-
       QSharedPointer<SessionSharedState> m_shared_state;
-      Messaging::StateMachine m_sm;
+      SessionStateMachine m_sm;
       Messaging::MessageDemuxer m_md;
       QWeakPointer<Session> m_shared;
 
@@ -257,6 +169,11 @@ namespace Session {
        * @param notification a data message
        */
       void HandleStop(const Request &notification);
+
+      /**
+       * Called when a new round has been created
+       */
+      void HandleRoundStartedSlot(const QSharedPointer<Anonymity::Round> &round);
 
       /**
        * Called when the round has been finished
@@ -282,61 +199,6 @@ namespace Session {
         QSharedPointer<Connections::Connection> scon(con->GetSharedPointer());
         HandleDisconnect(scon);
       }
-
-    private:
-      /**
-       * A light weight class for handling semi-reliable sends
-       * across the anonymous communication channel
-       */
-      class DataQueue {
-        public:
-          DataQueue() : m_trim(0), m_get_data(this, &DataQueue::GetData) {}
-
-          /**
-           * Adds new data to the send queue
-           * @param data the data to add
-           */
-          void AddData(const QByteArray &data)
-          {
-            m_queue.append(data);
-          }
-
-          /**
-           * Retrieves data from the data waiting queue, returns the byte array
-           * containing data and a bool which is true if there is more data
-           * available.
-           * @param max the maximum amount of data to retrieve
-           */
-          QPair<QByteArray, bool> GetData(int max);
-
-          /**
-           * Resets the current offset in the GetData queue
-           */
-          void UnGet()
-          {
-            m_trim = 0;
-          }
-
-          /** 
-           * Returns a callback into this object,
-           * which is valid so long as this object is
-           */
-          Messaging::GetDataCallback &GetCallback()
-          {
-            return m_get_data;
-          }
-
-        private:
-          QList<QByteArray> m_queue;
-          int m_trim;
-          Messaging::GetDataMethod<DataQueue> m_get_data;
-      };
-
-      /**
-       * Used to store messages to be transmitted in an upcoming round
-       */
-      DataQueue m_send_queue;
-
   };
 
   template<typename T> QSharedPointer<T> MakeSession(

@@ -1,83 +1,879 @@
-#include "ServerSession.hpp"
+#include <QDebug>
+
+#include "Connections/IOverlaySender.hpp"
 #include "Crypto/AsymmetricKey.hpp"
 #include "Crypto/Hash.hpp"
 #include "Messaging/ISender.hpp"
+#include "Messaging/StateData.hpp"
+#include "Utils/QRunTimeError.hpp"
 #include "Utils/Timer.hpp"
 #include "Utils/TimerCallback.hpp"
 
-#include "DummyState.hpp"
-#include "ServerStates.hpp"
-
 #include "SessionData.hpp"
 #include "ServerList.hpp"
+#include "ServerSession.hpp"
 #include "ServerStart.hpp"
 #include "ServerVerifyList.hpp"
 
+#include "SessionMessage.hpp"
+#include "SessionSharedState.hpp"
+#include "SessionState.hpp"
+
 namespace Dissent {
 namespace Session {
+namespace Server {
+  class ServerSessionSharedState : public SessionSharedState {
+    public:
+      explicit ServerSessionSharedState(const QSharedPointer<ClientServer::Overlay> &overlay,
+          const QSharedPointer<Crypto::AsymmetricKey> &my_key,
+          const QSharedPointer<Crypto::KeyShare> &keys,
+          Anonymity::CreateRound create_round) :
+        SessionSharedState(overlay, my_key, keys, create_round)
+      {
+      }
+
+      virtual ~ServerSessionSharedState() {}
+
+      /**
+       * Returns if the server is the proposer
+       */
+      bool IsProposer() const
+      {
+        return GetOverlay()->GetId() == GetOverlay()->GetServerIds().first();
+      }
+
+      void CheckClientRegister(const ClientRegister &clr)
+      {
+        if(clr.GetRoundId() != GetRoundId()) {
+          throw Utils::QRunTimeError("RoundId mismatch. Expected: " +
+              GetRoundId().toBase64() + ", found: " +
+              clr.GetRoundId().toBase64() + ", from " +
+              clr.GetId().ToString());
+        }
+
+        QSharedPointer<Crypto::AsymmetricKey> key =
+          GetKeyShare()->GetKey(clr.GetId().ToString());
+        if(!key->Verify(clr.GetPayload(), clr.GetSignature())) {
+          throw Utils::QRunTimeError("Invalid signature: " +
+              clr.GetId().ToString());
+        }
+
+        if(!clr.GetKey()->IsValid()) {
+          throw Utils::QRunTimeError("Invalid Ephemeral Key: " +
+              clr.GetId().ToString());
+        }
+      }
+
+      void Reset()
+      {
+        m_init.clear();
+        m_enlist_msgs.clear();
+        m_agree_msgs.clear();
+        m_agree.clear();
+        m_registered_msgs.clear();
+        m_verify.clear();
+      }
+
+      void SetInit(const QSharedPointer<ServerInit> &init) { m_init = init; }
+      QSharedPointer<ServerInit> GetInit() const { return m_init; }
+
+      typedef QMap<Connections::Id, QSharedPointer<ServerEnlist> > EnlistMap;
+      void SetEnlistMsgs(const EnlistMap &map) { m_enlist_msgs = map; }
+      EnlistMap GetEnlistMsgs() const { return m_enlist_msgs; }
+
+      typedef QMap<Connections::Id, QSharedPointer<ServerAgree> > AgreeMap;
+      void SetAgreeMsgs(const AgreeMap &map) {m_agree_msgs = map; }
+      AgreeMap GetAgreeMsgs() const { return m_agree_msgs; }
+      QByteArray GetAgree() const { return m_agree; }
+
+      typedef QMap<Connections::Id, QSharedPointer<ClientRegister> > RegisterMap;
+      void SetClientRegisterMsgs(const RegisterMap &map) { m_registered_msgs = map; }
+      RegisterMap GetClientRegisterMsgs() const { return m_registered_msgs; }
+
+      typedef QMap<Connections::Id, QByteArray> VerifyMap;
+      void SetVerifyMap(const VerifyMap &map) { m_verify = map; }
+      VerifyMap GetVerifyMap() const { return m_verify; }
+      
+    private:
+      QSharedPointer<ServerInit> m_init;
+      EnlistMap m_enlist_msgs;
+      AgreeMap m_agree_msgs;
+      QByteArray m_agree;
+      RegisterMap m_registered_msgs;
+      VerifyMap m_verify;
+  };
+
+  class OfflineState : public SessionState {
+    public:
+      OfflineState(const QSharedPointer<Messaging::StateData> &data) :
+        SessionState(data,
+            SessionStates::Offline,
+            SessionMessage::None)
+      {
+      }
+
+    private:
+      virtual bool StorePacket(const QSharedPointer<Messaging::Message> &msg) const
+      {
+        return (msg->GetMessageType() == SessionMessage::ServerEnlist ||
+            msg->GetMessageType() == SessionMessage::ServerInit);
+      }
+  };
+
+  class WaitingForServersState : public SessionState {
+    public:
+      WaitingForServersState(const QSharedPointer<Messaging::StateData> &data) :
+        SessionState(data,
+            SessionStates::WaitingForServers,
+            SessionMessage::None)
+      {
+      }
+
+      virtual ProcessResult Init()
+      {
+        if(CheckServers()) {
+          return NextState;
+        }
+        return NoChange;
+      }
+
+      virtual ProcessResult HandleConnection(const Connections::Id &remote)
+      {
+        QSharedPointer<ServerSessionSharedState> state =
+          GetSharedState().dynamicCast<ServerSessionSharedState>();
+
+        if(state->GetOverlay()->IsServer(remote) && CheckServers()) {
+          return NextState;
+        }
+        return NoChange;
+      }
+
+      virtual ProcessResult HandleDisconnection(const Connections::Id &)
+      {
+        return NoChange;
+      }
+
+    private:
+      virtual bool StorePacket(const QSharedPointer<Messaging::Message> &msg) const
+      {
+        return (msg->GetMessageType() == SessionMessage::ServerInit) ||
+          (msg->GetMessageType() == SessionMessage::ServerEnlist);
+      }
+
+      bool CheckServers()
+      {
+        QSharedPointer<ServerSessionSharedState> state =
+          GetSharedState().dynamicCast<ServerSessionSharedState>();
+
+        int connected_servers = 0;
+
+        Connections::ConnectionTable &ct = state->GetOverlay()->GetConnectionTable();
+        foreach(const QSharedPointer<Connections::Connection> &con, ct.GetConnections()) {
+          if(state->GetOverlay()->IsServer(con->GetRemoteId())) {
+            connected_servers++;
+          }
+        }
+
+        if(connected_servers != state->GetOverlay()->GetServerIds().count()) {
+          qDebug() << "Server" << state->GetOverlay()->GetId() << "connected to" <<
+            connected_servers << "of" << state->GetOverlay()->GetServerIds().count() <<
+            "servers.";
+          return false;
+        }
+
+        return true;
+      }
+  };
+
+  class InitState : public SessionState {
+    public:
+      InitState(const QSharedPointer<Messaging::StateData> &data) :
+        SessionState(data,
+            SessionStates::Init,
+            SessionMessage::ServerInit)
+      {
+      }
+
+      virtual ProcessResult Init()
+      {
+        QSharedPointer<ServerSessionSharedState> state =
+          GetSharedState().dynamicCast<ServerSessionSharedState>();
+
+        if(!state->IsProposer()) {
+          return NoChange;
+        }
+
+        qDebug() << state->GetOverlay()->GetId() << this << "sending" <<
+          SessionMessage::MessageTypeToString(GetMessageType());
+
+        QByteArray nonce(16, 0);
+        qint64 ctime = Utils::Time::GetInstance().MSecsSinceEpoch();
+        // @TODO compute GroupId
+        ServerInit init(state->GetOverlay()->GetId(), nonce, ctime, QByteArray(16, 0));
+        init.SetSignature(state->GetPrivateKey()->Sign(init.GetPayload()));
+
+        foreach(const Connections::Id &remote_id, state->GetOverlay()->GetServerIds()) {
+          state->GetOverlay()->SendNotification(remote_id, "SessionData", init.GetPacket());
+        }
+        return NoChange;
+      }
+
+      virtual ProcessResult ProcessPacket(
+          const QSharedPointer<Messaging::ISender> &,
+          const QSharedPointer<Messaging::Message> &msg)
+      {
+        QSharedPointer<ServerSessionSharedState> state =
+          GetSharedState().dynamicCast<ServerSessionSharedState>();
+        QSharedPointer<ServerInit> init = msg.dynamicCast<ServerInit>();
+
+        Connections::Id first = state->GetOverlay()->GetServerIds().first();
+        if(init->GetId() != first) {
+          throw Utils::QRunTimeError("Expected: " + first.ToString() +
+              ", got: " + init->GetId().ToString());
+        }
+
+        QSharedPointer<Crypto::AsymmetricKey> key =
+          state->GetKeyShare()->GetKey(first.ToString());
+
+        if(!key->Verify(init->GetPayload(), init->GetSignature())) {
+          throw Utils::QRunTimeError("Invalid signature");
+        }
+
+        QSharedPointer<ServerInit> c_init;
+        if(c_init && c_init->GetTimestamp() >= init->GetTimestamp()) {
+          throw Utils::QRunTimeError("Old init: " +
+              QString::number(c_init->GetTimestamp()) +
+              " > " +
+              QString::number(init->GetTimestamp()));
+        }
+
+        state->Reset();
+        state->SetInit(init);
+        return NextState;
+      }
+
+      virtual ProcessResult HandleDisconnection(const Connections::Id &id)
+      {
+        QSharedPointer<ServerSessionSharedState> state =
+          GetSharedState().dynamicCast<ServerSessionSharedState>();
+
+        if(state->GetOverlay()->IsServer(id)) {
+          return Restart;
+        }
+        return NoChange;
+      }
+
+    private:
+      virtual bool StorePacket(const QSharedPointer<Messaging::Message> &msg) const
+      {
+        return (msg->GetMessageType() == SessionMessage::ServerEnlist);
+      }
+  };
+
+  class EnlistState : public SessionState {
+    public:
+      EnlistState(const QSharedPointer<Messaging::StateData> &data) :
+        SessionState(data,
+            SessionStates::Enlist,
+            SessionMessage::ServerEnlist)
+      {
+      }
+
+      virtual ProcessResult Init()
+      {
+        QSharedPointer<ServerSessionSharedState> state =
+          GetSharedState().dynamicCast<ServerSessionSharedState>();
+        qDebug() << state->GetOverlay()->GetId() << this << "sending" <<
+          SessionMessage::MessageTypeToString(GetMessageType());
+
+        state->GenerateRoundData();
+
+        ServerEnlist enlist(state->GetOverlay()->GetId(),
+            state->GetInit(), state->GetEphemeralKey()->GetPublicKey(),
+            state->GetOptionalPublic());
+        enlist.SetSignature(state->GetPrivateKey()->Sign(enlist.GetPayload()));
+
+        foreach(const Connections::Id &remote_id, state->GetOverlay()->GetServerIds()) {
+          state->GetOverlay()->SendNotification(remote_id, "SessionData", enlist.GetPacket());
+        }
+        return NoChange;
+      }
+
+      virtual ProcessResult ProcessPacket(
+          const QSharedPointer<Messaging::ISender> &,
+          const QSharedPointer<Messaging::Message> &msg)
+      {
+        QSharedPointer<ServerSessionSharedState> state =
+          GetSharedState().dynamicCast<ServerSessionSharedState>();
+        QSharedPointer<ServerEnlist> enlist = msg.dynamicCast<ServerEnlist>();
+        Connections::Id remote_id = enlist->GetId();
+
+        if(!state->GetOverlay()->IsServer(remote_id)) {
+          throw Utils::QRunTimeError("Not a server: " + remote_id.ToString());
+        }
+
+        // If this is a new init message, we need to restart
+        //if(!ProcessInit(enlist->GetInit())) {
+          //return;
+        //}
+
+        // This is just a repeat of the current init message with no new state
+        if(m_enlist_msgs.contains(remote_id)) {
+          throw Utils::QRunTimeError("Already have Enlist message from " +
+              remote_id.ToString());
+        }
+
+        if(!state->GetKeyShare()->GetKey(remote_id.ToString())->Verify(enlist->GetPayload(),
+              enlist->GetSignature()))
+        {
+          throw Utils::QRunTimeError("Invalid signature from " + remote_id.ToString());
+        }
+
+        if(!enlist->GetKey()->IsValid()) {
+          throw Utils::QRunTimeError("Invalid Ephemeral Key from " + remote_id.ToString());
+        }
+
+        m_enlist_msgs[remote_id] = enlist;
+        if(m_enlist_msgs.count() != state->GetOverlay()->GetServerIds().size()) {
+          qDebug() << state->GetOverlay()->GetId() << this << "have" <<
+            m_enlist_msgs.count() << "of" << state->GetOverlay()->GetServerIds().size();
+          return NoChange;
+        }
+
+        state->SetEnlistMsgs(m_enlist_msgs);
+        return NextState;
+      }
+
+      virtual ProcessResult HandleDisconnection(const Connections::Id &id)
+      {
+        QSharedPointer<ServerSessionSharedState> state =
+          GetSharedState().dynamicCast<ServerSessionSharedState>();
+
+        if(state->GetOverlay()->IsServer(id)) {
+          return Restart;
+        }
+        return NoChange;
+      }
+
+    private:
+      virtual bool StorePacket(const QSharedPointer<Messaging::Message> &msg) const
+      {
+        return (msg->GetMessageType() == SessionMessage::ServerAgree);
+      }
+
+      ServerSessionSharedState::EnlistMap m_enlist_msgs;
+
+  };
+
+  class AgreeState : public SessionState {
+    public:
+      AgreeState(const QSharedPointer<Messaging::StateData> &data) :
+        SessionState(data,
+            SessionStates::Agree,
+            SessionMessage::ServerAgree)
+      {
+      }
+
+      virtual ProcessResult Init()
+      {
+        QSharedPointer<ServerSessionSharedState> state =
+          GetSharedState().dynamicCast<ServerSessionSharedState>();
+
+        Crypto::Hash hash;
+        foreach(const QSharedPointer<ServerEnlist> &enlist, state->GetEnlistMsgs()) {
+          hash.Update(enlist->GetPayload());
+        }
+
+        state->SetRoundId(hash.ComputeHash());
+        ServerAgree agree(state->GetOverlay()->GetId(),
+            state->GetRoundId(), state->GetEphemeralKey()->GetPublicKey(),
+            state->GetOptionalPublic());
+        agree.SetSignature(state->GetPrivateKey()->Sign(agree.GetPayload()));
+
+        foreach(const Connections::Id &remote_id, state->GetOverlay()->GetServerIds()) {
+          state->GetOverlay()->SendNotification(remote_id, "SessionData", agree.GetPacket());
+        }
+
+        return NoChange;
+      }
+
+      virtual ProcessResult ProcessPacket(
+          const QSharedPointer<Messaging::ISender> &,
+          const QSharedPointer<Messaging::Message> &msg)
+      {
+        QSharedPointer<ServerSessionSharedState> state =
+          GetSharedState().dynamicCast<ServerSessionSharedState>();
+        QSharedPointer<ServerAgree> agree = msg.dynamicCast<ServerAgree>();
+
+        Connections::Id remote_id = agree->GetId();
+        if(!state->GetOverlay()->IsServer(remote_id)) {
+          throw Utils::QRunTimeError("Not a server: " + remote_id.ToString());
+        }
+
+        if(m_agree_msgs.contains(remote_id)) {
+          throw Utils::QRunTimeError("Already have Agree message: " +
+              remote_id.ToString());
+        }
+
+        state->CheckServerAgree(*agree);
+
+        QSharedPointer<ServerEnlist> enlist = state->GetEnlistMsgs()[remote_id];
+        if((enlist->GetId() != agree->GetId()) ||
+            (enlist->GetKey() != agree->GetKey()) ||
+            (enlist->GetOptional() != agree->GetOptional()))
+        {
+          throw Utils::QRunTimeError("Agree message doesn't match Enlist: " +
+              remote_id.ToString());
+        }
+
+        m_agree_msgs[remote_id] = agree;
+        if(m_agree_msgs.count() != state->GetOverlay()->GetServerIds().size()) {
+          qDebug() << state->GetOverlay()->GetId() << this << "have" <<
+            m_agree_msgs.count() << "of" <<
+            state->GetOverlay()->GetServerIds().size();
+          return NoChange;
+        }
+
+        state->SetAgreeMsgs(m_agree_msgs);
+        state->SetServers(m_agree_msgs.values());
+        return NextState;
+      }
+
+      virtual ProcessResult HandleDisconnection(const Connections::Id &id)
+      {
+        QSharedPointer<ServerSessionSharedState> state =
+          GetSharedState().dynamicCast<ServerSessionSharedState>();
+
+        if(state->GetOverlay()->IsServer(id)) {
+          return Restart;
+        }
+        return NoChange;
+      }
+
+    private:
+      virtual bool StorePacket(const QSharedPointer<Messaging::Message> &msg) const
+      {
+        return (msg->GetMessageType() == SessionMessage::ClientRegister) ||
+          (msg->GetMessageType() == SessionMessage::ServerList);
+      }
+
+      ServerSessionSharedState::AgreeMap m_agree_msgs;
+  };
+
+  class RegisteringState : public SessionState {
+    public:
+      RegisteringState(const QSharedPointer<Messaging::StateData> &data) :
+        SessionState(data,
+            SessionStates::Registering,
+            SessionMessage::ClientRegister)
+      {
+      }
+
+      virtual ProcessResult Init()
+      {
+        QSharedPointer<ServerSessionSharedState> state =
+          GetSharedState().dynamicCast<ServerSessionSharedState>();
+
+        qDebug() << state->GetOverlay()->GetId() << this << "sending" <<
+          SessionMessage::MessageTypeToString(SessionMessage::ServerQueued);
+
+        Utils::TimerCallback *cb =
+          new Utils::TimerMethod<RegisteringState, int>(this,
+              &RegisteringState::FinishClientRegister, 0);
+        m_register_timer = Utils::Timer::GetInstance().QueueCallback(cb, ROUND_TIMER);
+
+        Connections::ConnectionTable &ct = state->GetOverlay()->GetConnectionTable();
+        foreach(const QSharedPointer<Connections::Connection> &con, ct.GetConnections()) {
+          Connections::Id remote_id = con->GetRemoteId();
+          if(state->GetOverlay()->IsServer(remote_id)) {
+            continue;
+          }
+          ServerQueued queued(state->GetServers(), QByteArray(16, 0),
+              state->GetServersBytes());
+          queued.SetSignature(state->GetPrivateKey()->Sign(queued.GetPayload()));
+          state->GetOverlay()->SendNotification(remote_id, "SessionData", queued.GetPacket());
+        }
+
+        return NoChange;
+      }
+
+      virtual ProcessResult ProcessPacket(
+          const QSharedPointer<Messaging::ISender> &,
+          const QSharedPointer<Messaging::Message> &msg)
+      {
+        QSharedPointer<ServerSessionSharedState> state =
+          GetSharedState().dynamicCast<ServerSessionSharedState>();
+        QSharedPointer<ClientRegister> clr = msg.dynamicCast<ClientRegister>();
+
+        Connections::Id remote_id = clr->GetId();
+        if(state->GetOverlay()->IsServer(remote_id)) {
+          throw Utils::QRunTimeError("Is server: " + remote_id.ToString());
+        }
+
+        if(m_registered_msgs.contains(remote_id)) {
+          throw Utils::QRunTimeError("Already registered: " + remote_id.ToString());
+        }
+
+        state->CheckClientRegister(*clr);
+        m_registered_msgs[remote_id] = clr;
+        qDebug() << state->GetOverlay()->GetId() << this << remote_id << "registered";
+        return NoChange;
+      }
+
+      // @TODO Add a HandleConnection and pass the server messages downstream
+      virtual ProcessResult HandleDisconnection(const Connections::Id &id)
+      {
+        QSharedPointer<ServerSessionSharedState> state =
+          GetSharedState().dynamicCast<ServerSessionSharedState>();
+
+        if(state->GetOverlay()->IsServer(id)) {
+          return Restart;
+        }
+        return NoChange;
+      }
+
+    private:
+      virtual bool StorePacket(const QSharedPointer<Messaging::Message> &msg) const
+      {
+        return (msg->GetMessageType() == SessionMessage::ServerList);
+      }
+
+      /**
+       * Called after the timeout for the client registration phase has passed
+       */
+      void FinishClientRegister(const int &)
+      {
+        QSharedPointer<ServerSessionSharedState> state =
+          GetSharedState().dynamicCast<ServerSessionSharedState>();
+        qDebug() << state->GetOverlay()->GetId() << this <<
+          "finished waiting for client.";
+
+        state->SetClientRegisterMsgs(m_registered_msgs);
+        StateChange(NextState);
+      }
+
+      int ROUND_TIMER = 30 * 1000;
+      Utils::TimerEvent m_register_timer;
+      ServerSessionSharedState::RegisterMap m_registered_msgs;
+  };
+
+  class ListExchangeState : public SessionState {
+    public:
+      ListExchangeState(const QSharedPointer<Messaging::StateData> &data) :
+        SessionState(data,
+            SessionStates::ListExchange,
+            SessionMessage::ServerList)
+      {
+      }
+
+      virtual ProcessResult Init()
+      {
+        QSharedPointer<ServerSessionSharedState> state =
+          GetSharedState().dynamicCast<ServerSessionSharedState>();
+        m_registered_msgs = state->GetClientRegisterMsgs();
+        qDebug() << state->GetOverlay()->GetId() << this << "sending" <<
+          SessionMessage::MessageTypeToString(GetMessageType());
+
+        ServerList list(state->GetClientRegisterMsgs().values());
+        list.SetSignature(state->GetPrivateKey()->Sign(list.GetPayload()));
+
+        foreach(const Connections::Id &remote_id, state->GetOverlay()->GetServerIds()) {
+          state->GetOverlay()->SendNotification(remote_id, "SessionData", list.GetPacket());
+        }
+        return NoChange;
+      }
+
+      virtual ProcessResult ProcessPacket(
+          const QSharedPointer<Messaging::ISender> &from,
+          const QSharedPointer<Messaging::Message> &msg)
+      {
+        QSharedPointer<ServerSessionSharedState> state =
+          GetSharedState().dynamicCast<ServerSessionSharedState>();
+        QSharedPointer<ServerList> list = msg.dynamicCast<ServerList>();
+
+        QSharedPointer<Connections::IOverlaySender> sender =
+          from.dynamicCast<Connections::IOverlaySender>();
+
+        if(!sender) {
+          throw Utils::QRunTimeError("Bad sender: " + from->ToString());
+        }
+
+        Connections::Id remote_id = sender->GetRemoteId();
+        if(!state->GetOverlay()->IsServer(remote_id)) {
+          throw Utils::QRunTimeError("Non-server: " + remote_id.ToString());
+        }
+
+        if(m_list_received.contains(remote_id)) {
+          throw Utils::QRunTimeError("Already have List: " +
+              remote_id.ToString());
+        }
+
+        foreach(const QSharedPointer<ClientRegister> &clr, list->GetRegisterList()) {
+          state->CheckClientRegister(*clr);
+        }
+
+        foreach(const QSharedPointer<ClientRegister> &clr, list->GetRegisterList()) {
+          if(m_registered_msgs.contains(clr->GetId())) {
+            // go with the lower server entry...
+          }
+          m_registered_msgs[clr->GetId()] = clr;
+        }
+
+        m_list_received[remote_id] = true;
+        if(m_list_received.count() != state->GetOverlay()->GetServerIds().size()) {
+          qDebug() << state->GetOverlay()->GetId() << this << "have" <<
+            m_list_received.count() << "of" <<
+            state->GetOverlay()->GetServerIds().size();
+          return NoChange;
+        }
+
+        state->SetClientRegisterMsgs(m_registered_msgs);
+        state->SetClients(m_registered_msgs.values());
+        return NextState;
+      }
+
+      virtual ProcessResult HandleDisconnection(const Connections::Id &id)
+      {
+        QSharedPointer<ServerSessionSharedState> state =
+          GetSharedState().dynamicCast<ServerSessionSharedState>();
+
+        if(state->GetOverlay()->IsServer(id)) {
+          return Restart;
+        }
+        return NoChange;
+      }
+
+    private:
+      virtual bool StorePacket(const QSharedPointer<Messaging::Message> &msg) const
+      {
+        return (msg->GetMessageType() == SessionMessage::ServerVerifyList);
+      }
+
+      QMap<Connections::Id, bool> m_list_received;
+      ServerSessionSharedState::RegisterMap m_registered_msgs;
+  };
+
+  class VerifyListState : public SessionState {
+    public:
+      VerifyListState(const QSharedPointer<Messaging::StateData> &data) :
+        SessionState(data,
+            SessionStates::VerifyList,
+            SessionMessage::ServerVerifyList)
+      {
+      }
+
+      virtual ProcessResult Init()
+      {
+        QSharedPointer<ServerSessionSharedState> state =
+          GetSharedState().dynamicCast<ServerSessionSharedState>();
+        qDebug() << state->GetOverlay()->GetId() << this << "sending" <<
+          SessionMessage::MessageTypeToString(GetMessageType());
+
+        QByteArray registered = SerializeList<ClientRegister>(state->GetClients());
+        Crypto::Hash hash;
+        m_registered = hash.ComputeHash(registered);
+        ServerVerifyList verify(state->GetPrivateKey()->Sign(m_registered), true);
+        foreach(const Connections::Id &remote_id, state->GetOverlay()->GetServerIds()) {
+          state->GetOverlay()->SendNotification(remote_id, "SessionData", verify.GetPacket());
+        }
+
+        return NoChange;
+      }
+
+      virtual ProcessResult ProcessPacket(
+          const QSharedPointer<Messaging::ISender> &from,
+          const QSharedPointer<Messaging::Message> &msg)
+      {
+        QSharedPointer<ServerSessionSharedState> state =
+          GetSharedState().dynamicCast<ServerSessionSharedState>();
+
+        QSharedPointer<Connections::IOverlaySender> sender =
+          from.dynamicCast<Connections::IOverlaySender>();
+
+        if(!sender) {
+          throw Utils::QRunTimeError("Bad sender: " + from->ToString());
+        }
+
+        Connections::Id remote_id = sender->GetRemoteId();
+        if(!state->GetOverlay()->IsServer(remote_id)) {
+          throw Utils::QRunTimeError("Non-server: " + remote_id.ToString());
+        }
+
+        if(m_verify.contains(remote_id)) {
+          throw Utils::QRunTimeError("Already have VerifyList: " +
+              remote_id.ToString());
+        }
+
+        QSharedPointer<ServerVerifyList> verify =
+          msg.dynamicCast<ServerVerifyList>();
+        QSharedPointer<Crypto::AsymmetricKey> key =
+          state->GetKeyShare()->GetKey(remote_id.ToString());
+        QByteArray signature = verify->GetSignature();
+        if(!key->Verify(m_registered, signature)) {
+          throw Utils::QRunTimeError("Invalid signature: " +
+              remote_id.ToString());
+        }
+
+        m_verify[remote_id] = signature;
+        if(m_verify.count() != state->GetOverlay()->GetServerIds().size()) {
+          qDebug() << state->GetOverlay()->GetId() << this << "have" <<
+            m_verify.count() << "of" <<
+            state->GetOverlay()->GetServerIds().size();
+          return NoChange;
+        }
+
+        state->SetVerifyMap(m_verify);
+        return NextState;
+      }
+
+      virtual ProcessResult HandleDisconnection(const Connections::Id &id)
+      {
+        QSharedPointer<ServerSessionSharedState> state =
+          GetSharedState().dynamicCast<ServerSessionSharedState>();
+
+        if(state->GetOverlay()->IsServer(id)) {
+          return Restart;
+        }
+        return NoChange;
+      }
+
+    private:
+      virtual bool StorePacket(const QSharedPointer<Messaging::Message> &msg) const
+      {
+        return (msg->GetMessageType() == SessionMessage::SessionData);
+      }
+
+      ServerSessionSharedState::VerifyMap m_verify;
+      QByteArray m_registered;
+  };
+
+  class CommState : public SessionState {
+    public:
+      explicit CommState(const QSharedPointer<Messaging::StateData> &data) :
+        SessionState(data,
+            SessionStates::Communicating,
+            SessionMessage::SessionData)
+      {
+      }
+
+      virtual ProcessResult Init()
+      {
+        QSharedPointer<ServerSessionSharedState> state =
+          GetSharedState().dynamicCast<ServerSessionSharedState>();
+        qDebug() << state->GetOverlay()->GetId() << this << "sending" <<
+          SessionMessage::MessageTypeToString(SessionMessage::ServerStart);
+
+        state->NextRound();
+
+        ServerStart start(state->GetClients(), state->GetVerifyMap().values());
+        Connections::ConnectionTable &ct = state->GetOverlay()->GetConnectionTable();
+        foreach(const QSharedPointer<Connections::Connection> &con, ct.GetConnections()) {
+          if(state->GetClientRegisterMsgs().contains(con->GetRemoteId())) {
+            state->GetOverlay()->SendNotification(
+                con->GetRemoteId(), "SessionData", start.GetPacket());
+          }
+        }
+
+        state->GetRound()->Start();
+        return NoChange;
+      }
+
+      virtual ProcessResult ProcessPacket(
+          const QSharedPointer<Messaging::ISender> &from,
+          const QSharedPointer<Messaging::Message> &msg)
+      {
+        QSharedPointer<SessionData> rm(msg.dynamicCast<SessionData>());
+        if(!rm) {
+          throw Utils::QRunTimeError("Invalid message");
+        }
+
+        QSharedPointer<Connections::IOverlaySender> sender =
+          from.dynamicCast<Connections::IOverlaySender>();
+
+        if(!sender) {
+          throw Utils::QRunTimeError("Received wayward message from: " +
+              from->ToString());
+        }
+
+        GetSharedState()->GetRound()->ProcessPacket(
+            sender->GetRemoteId(), rm->GetPacket());
+        return NoChange;
+      }
+
+    private:
+      virtual bool StorePacket(const QSharedPointer<Messaging::Message> &msg) const
+      {
+        return (msg->GetMessageType() == SessionMessage::ServerInit) ||
+          (msg->GetMessageType() == SessionMessage::ServerEnlist);
+      }
+  };
+}
+
+  using namespace Server;
+  
   ServerSession::ServerSession(
           const QSharedPointer<ClientServer::Overlay> &overlay,
           const QSharedPointer<Crypto::AsymmetricKey> &my_key,
           const QSharedPointer<Crypto::KeyShare> &keys,
           Anonymity::CreateRound create_round) :
-    Session(overlay, my_key, keys, create_round),
-    m_state(OFFLINE)
+    Session(QSharedPointer<SessionSharedState>(
+          new ServerSessionSharedState(overlay, my_key, keys, create_round)))
   {
-    GetStateMachine().AddState(new Messaging::StateFactory<DummyState>(
-          SessionStates::ServerInit, SessionMessage::ServerInit));
-    GetStateMachine().AddState(new Messaging::StateFactory<ServerCommState>(
+    GetStateMachine().AddState(new Messaging::StateFactory<OfflineState>(
+          SessionStates::Offline, SessionMessage::None));
+    GetStateMachine().AddState(new Messaging::StateFactory<WaitingForServersState>(
+          SessionStates::WaitingForServers, SessionMessage::None));
+    GetStateMachine().AddState(new Messaging::StateFactory<InitState>(
+          SessionStates::Init, SessionMessage::ServerInit));
+    GetStateMachine().AddState(new Messaging::StateFactory<EnlistState>(
+          SessionStates::Enlist, SessionMessage::ServerEnlist));
+    GetStateMachine().AddState(new Messaging::StateFactory<AgreeState>(
+          SessionStates::Agree, SessionMessage::ServerAgree));
+    GetStateMachine().AddState(new Messaging::StateFactory<RegisteringState>(
+          SessionStates::Registering, SessionMessage::ClientRegister));
+    GetStateMachine().AddState(new Messaging::StateFactory<ListExchangeState>(
+          SessionStates::ListExchange, SessionMessage::ServerList));
+    GetStateMachine().AddState(new Messaging::StateFactory<VerifyListState>(
+          SessionStates::VerifyList, SessionMessage::ServerVerifyList));
+    GetStateMachine().AddState(new Messaging::StateFactory<CommState>(
           SessionStates::Communicating, SessionMessage::SessionData));
-    AddMessageParser(new Messaging::MessageParser<SessionData>(SessionMessage::SessionData));
-    GetStateMachine().SetState(SessionStates::ServerInit);
-    GetStateMachine().AddTransition(SessionStates::ServerInit, SessionStates::Communicating);
-    GetStateMachine().AddTransition(SessionStates::Communicating, SessionStates::ServerInit);
 
-    GetOverlay()->GetRpcHandler()->Register("Init", this, "HandleInit");
-    GetOverlay()->GetRpcHandler()->Register("Enlist", this, "HandleEnlist");
-    GetOverlay()->GetRpcHandler()->Register("Agree", this, "HandleAgree");
-    GetOverlay()->GetRpcHandler()->Register("Queue", this, "HandleQueue");
-    GetOverlay()->GetRpcHandler()->Register("Register", this, "HandleRegister");
-    GetOverlay()->GetRpcHandler()->Register("List", this, "HandleList");
-    GetOverlay()->GetRpcHandler()->Register("VerifyList", this, "HandleVerifyList");
+    GetStateMachine().AddTransition(SessionStates::Offline,
+        SessionStates::WaitingForServers);
+    GetStateMachine().AddTransition(SessionStates::WaitingForServers,
+        SessionStates::Init);
+    GetStateMachine().AddTransition(SessionStates::Init,
+        SessionStates::Enlist);
+    GetStateMachine().AddTransition(SessionStates::Enlist,
+        SessionStates::Agree);
+    GetStateMachine().AddTransition(SessionStates::Agree,
+        SessionStates::Registering);
+    GetStateMachine().AddTransition(SessionStates::Registering,
+        SessionStates::ListExchange);
+    GetStateMachine().AddTransition(SessionStates::ListExchange,
+        SessionStates::VerifyList);
+    GetStateMachine().AddTransition(SessionStates::VerifyList,
+        SessionStates::Communicating);
+    GetStateMachine().AddTransition(SessionStates::Communicating,
+        SessionStates::WaitingForServers);
+
+    GetStateMachine().SetState(SessionStates::Offline);
+
+    AddMessageParser(new Messaging::MessageParser<ServerInit>(SessionMessage::ServerInit));
+    AddMessageParser(new Messaging::MessageParser<ServerEnlist>(SessionMessage::ServerEnlist));
+    AddMessageParser(new Messaging::MessageParser<ServerAgree>(SessionMessage::ServerAgree));
+    AddMessageParser(new Messaging::MessageParser<ClientRegister>(SessionMessage::ClientRegister));
+    AddMessageParser(new Messaging::MessageParser<ServerList>(SessionMessage::ServerList));
+    AddMessageParser(new Messaging::MessageParser<ServerVerifyList>(SessionMessage::ServerVerifyList));
+    AddMessageParser(new Messaging::MessageParser<SessionData>(SessionMessage::SessionData));
   }
 
   ServerSession::~ServerSession()
-  {
-    GetOverlay()->GetRpcHandler()->Unregister("HandleInit");
-    GetOverlay()->GetRpcHandler()->Unregister("HandleEnlist");
-    GetOverlay()->GetRpcHandler()->Unregister("HandleAgree");
-    GetOverlay()->GetRpcHandler()->Unregister("HandleQueue");
-    GetOverlay()->GetRpcHandler()->Unregister("HandleRegister");
-    GetOverlay()->GetRpcHandler()->Unregister("HandleList");
-    GetOverlay()->GetRpcHandler()->Unregister("HandleVerifyList");
-  }
-
-  void ServerSession::OnStart()
-  {
-    m_state = WAITING_FOR_SERVERS_AND_INIT;
-    CheckServers();
-  }
-
-  void ServerSession::OnStop()
   {
   }
 
   void ServerSession::HandleRoundFinished()
   {
-    GetStateMachine().StateComplete();
-    m_state = WAITING_FOR_SERVERS_AND_INIT;
-
-    m_init.clear();
-    m_enlist_msgs.clear();
-    m_agree_msgs.clear();
-    m_agree = QByteArray();
-    m_queued_msgs.clear();
-    m_registered_msgs.clear();
-    m_registered = QByteArray();
-    m_list_received.clear();
-    m_verify.clear();
-
-    CheckServers();
   }
 
   void ServerSession::HandleConnection(
@@ -85,574 +881,6 @@ namespace Session {
   {
     connect(con.data(), SIGNAL(Disconnected(const QString &)),
         this, SLOT(HandleDisconnectSlot()));
-
-    if(!GetOverlay()->IsServer(con->GetRemoteId())) {
-      return;
-    }
-
-    CheckServers();
-  }
-
-  void ServerSession::CheckServers()
-  {
-    m_connected_servers = 0;
-
-    Connections::ConnectionTable &ct = GetOverlay()->GetConnectionTable();
-    foreach(const QSharedPointer<Connections::Connection> &con, ct.GetConnections()) {
-      if(GetOverlay()->IsServer(con->GetRemoteId())) {
-        m_connected_servers++;
-      }
-    }
-
-    if(m_connected_servers != GetOverlay()->GetServerIds().count()) {
-      qDebug() << "Server" << GetOverlay()->GetId() << "connected to" <<
-        m_connected_servers << "of" << GetOverlay()->GetServerIds().count() <<
-        "servers.";
-      return;
-    }
-
-    if(m_state == WAITING_FOR_SERVERS_AND_INIT) {
-      m_state = WAITING_FOR_INIT;
-      if(IsProposer()) {
-        SendInit();
-      }
-    } else if(m_state == WAITING_FOR_SERVERS) {
-      SendEnlist();
-    }
-  }
-
-  void ServerSession::HandleDisconnect(
-      const QSharedPointer<Connections::Connection> &con)
-  {
-    if(GetOverlay()->IsServer(con->GetRemoteId())) {
-    }
-  }
-
-  void ServerSession::SendInit()
-  {
-    qDebug() << GetOverlay()->GetId() << "ServerSession::Init: sending Init";
-
-    QByteArray nonce(16, 0);
-    qint64 ctime = Utils::Time::GetInstance().MSecsSinceEpoch();
-    ServerInit init(GetOverlay()->GetId(), nonce, ctime, QByteArray(16, 0));
-    init.SetSignature(GetPrivateKey()->Sign(init.GetPayload()));
-
-    foreach(const Connections::Id &remote_id, GetOverlay()->GetServerIds()) {
-      GetOverlay()->SendNotification(remote_id, "Init", init.GetPacket());
-    }
-  }
-
-  void ServerSession::HandleInit(const Messaging::Request &notification)
-  {
-    if(m_state == OFFLINE) {
-      m_queue.append(notification);
-      return;
-    }
-
-    QByteArray packet = notification.GetData().toByteArray();
-    QSharedPointer<ServerInit> init(new ServerInit(packet));
-    QSharedPointer<Connections::IOverlaySender> sender(
-        notification.GetFrom().dynamicCast<Connections::IOverlaySender>());
-
-    if(!sender) {
-      qDebug() << "HandleInit - Invalid sender:" << notification.GetFrom();
-      return;
-    }
-
-    if(GetOverlay()->GetServerIds().first() != sender->GetRemoteId()) {
-      qDebug() << "HandleInit - wrong sender:" << notification.GetFrom();
-      return;
-    }
-
-    ProcessInit(init);
-  }
-
-  bool ServerSession::ProcessInit(const QSharedPointer<ServerInit> &init)
-  {
-    if(m_init && (m_init->GetPacket() == init->GetPacket())) {
-      return true;
-    }
-
-    QSharedPointer<Crypto::AsymmetricKey> key(GetKeyShare()->GetKey(
-          GetOverlay()->GetServerIds().first().ToString()));
-    if(!key->Verify(init->GetPayload(), init->GetSignature())) {
-      qDebug() << "ProcessInit - invalid signature";
-      return false;
-    }
-
-    if(m_init && m_init->GetTimestamp() >= init->GetTimestamp()) {
-      qDebug() << "ProcessInit - older init" << m_init->GetTimestamp() <<
-        init->GetTimestamp();
-      return false;
-    }
-
-    m_init = init;
-
-    if(m_state == WAITING_FOR_SERVERS_AND_INIT) {
-      m_state = WAITING_FOR_SERVERS;
-    } else if(m_state == WAITING_FOR_INIT) {
-      SendEnlist();
-    } else {
-      qDebug() << "Think about it...";
-    }
-
-    return true;
-  }
-
-  void ServerSession::SendEnlist()
-  {
-    qDebug() << GetOverlay()->GetId() << "ServerSession::Enlist: sending Enlist";
-
-    m_state = ENLISTING;
-
-    m_enlist_msgs.clear();
-    GenerateRoundData();
-
-    ServerEnlist enlist(GetOverlay()->GetId(),
-        m_init, GetEphemeralKey()->GetPublicKey(), GetOptionalPublic());
-    enlist.SetSignature(GetPrivateKey()->Sign(enlist.GetPayload()));
-
-    foreach(const Connections::Id &remote_id, GetOverlay()->GetServerIds()) {
-      GetOverlay()->SendNotification(remote_id, "Enlist", enlist.GetPacket());
-    }
-  }
-
-  void ServerSession::HandleEnlist(const Messaging::Request &notification)
-  {
-    if(m_state == OFFLINE) {
-      m_queue.append(notification);
-      return;
-    }
-
-    QByteArray packet = notification.GetData().toByteArray();
-    QSharedPointer<ServerEnlist> enlist(new ServerEnlist(packet));
-    QSharedPointer<Connections::IOverlaySender> sender(
-        notification.GetFrom().dynamicCast<Connections::IOverlaySender>());
-
-    if(!sender) {
-      qWarning() << GetOverlay()->GetId() << "ServerSession::Enlist: Bad sender:"
-        << notification.GetFrom()->ToString();
-      return;
-    }
-
-    Connections::Id remote_id = sender->GetRemoteId();
-
-    if(!GetOverlay()->IsServer(remote_id)) {
-      qWarning() << GetOverlay()->GetId() << "ServerSession::Enlist: not a server:"
-        << remote_id;
-      return;
-    }
-
-    // If this is a new init message, we need to restart
-    if(!ProcessInit(enlist->GetInit())) {
-      return;
-    }
-
-    // This is just a repeat of the current init message with no new state
-    if(m_enlist_msgs.contains(remote_id)) {
-      qWarning() << GetOverlay()->GetId() <<
-        "ServerSession::Enlist: already have Enlist message" << remote_id;
-      return;
-    }
-
-    if(m_state == WAITING_FOR_SERVERS) {
-      m_queue.append(notification);
-      return;
-    }
-
-    if(!GetKeyShare()->GetKey(remote_id.ToString())->Verify(enlist->GetPayload(),
-          enlist->GetSignature()))
-    {
-      qWarning() << GetOverlay()->GetId() <<
-        "ServerSession::Enlist: Invalid signature" << remote_id;
-      return;
-    }
-
-    if(enlist->GetId() != remote_id) {
-      qWarning() << GetOverlay()->GetId() <<
-        "ServerSession::Enlist: Remote peer's Id mismatch:" << remote_id << enlist->GetId();
-      return;
-    }
-
-    if(!enlist->GetKey()->IsValid()) {
-      qWarning() << GetOverlay()->GetId() <<
-        "ServerSession::Enlist: Invalid Ephemeral Key:" << remote_id;
-      return;
-    }
-
-    m_enlist_msgs[remote_id] = enlist;
-    if(m_enlist_msgs.count() != GetOverlay()->GetServerIds().size()) {
-      qDebug() << GetOverlay()->GetId() <<
-        "ServerSession::Enlist: have" << m_enlist_msgs.count() << "of" <<
-        GetOverlay()->GetServerIds().size();
-      return;
-    }
-
-    qDebug() << GetOverlay()->GetId() <<
-      "ServerSession::Enlist: finished, sending Agree";
-
-    Crypto::Hash hash;
-    foreach(const QSharedPointer<ServerEnlist> &enlist, m_enlist_msgs) {
-      hash.Update(enlist->GetPayload());
-    }
-
-    SetRoundId(hash.ComputeHash());
-    ServerAgree agree(GetOverlay()->GetId(),
-        GetRoundId(), GetEphemeralKey()->GetPublicKey(), GetOptionalPublic());
-    agree.SetSignature(GetPrivateKey()->Sign(agree.GetPayload()));
-
-    m_state = AGREEING;
-    foreach(const Connections::Id &remote_id, GetOverlay()->GetServerIds()) {
-      GetOverlay()->SendNotification(remote_id, "Agree", agree.GetPacket());
-    }
-
-    QList<Messaging::Request> queue = m_queue;
-    m_queue.clear();
-    foreach(const Messaging::Request &notification, queue) {
-      if(notification.GetMethod() != "Agree") {
-        continue;
-      }
-      HandleAgree(notification);
-    }
-  }
-
-  void ServerSession::HandleAgree(const Messaging::Request &notification)
-  {
-    if(m_state == ENLISTING) {
-      m_queue.append(notification);
-      return;
-    } else if(m_state != AGREEING) {
-      qWarning() << GetOverlay()->GetId() <<
-        "ServerSession::Agree: message out of order" <<
-        notification.GetFrom()->ToString() << "Current state:" << m_state;
-      return;
-    }
-
-    QSharedPointer<Connections::Connection> sender =
-      notification.GetFrom().dynamicCast<Connections::Connection>();
-
-    if(!sender) {
-      qWarning() << GetOverlay()->GetId() << "ServerSession::Agree: Bad sender:"
-        << notification.GetFrom()->ToString();
-      return;
-    }
-
-    Connections::Id remote_id = sender->GetRemoteId();
-    if(!GetOverlay()->IsServer(remote_id)) {
-      qWarning() << GetOverlay()->GetId() << "ServerSession::Agree: not a server:"
-        << remote_id;
-      return;
-    }
-
-    if(m_agree_msgs.contains(remote_id)) {
-      qWarning() << GetOverlay()->GetId() <<
-        "ServerSession::Agree: already have Agree message" << remote_id;
-      return;
-    }
-
-    QSharedPointer<ServerAgree> agree(new ServerAgree(
-          notification.GetData().toByteArray()));
-
-    if(agree->GetId() != remote_id) {
-      qWarning() << GetOverlay()->GetId() <<
-        "ServerSession::Agree: Remote peer's Id mismatch:" << remote_id << agree->GetId();
-      return;
-    }
-
-    if(!CheckServerAgree(*agree)) {
-      return;
-    }
-
-    QSharedPointer<ServerEnlist> enlist = m_enlist_msgs[remote_id];
-    if((enlist->GetId() != agree->GetId()) ||
-        (enlist->GetKey() != agree->GetKey()) ||
-        (enlist->GetOptional() != agree->GetOptional()))
-    {
-      qWarning() << GetOverlay()->GetId() <<
-        "ServerSession::Agree: Agree message doesn't match Enlist:" << remote_id;
-      return;
-    }
-
-    m_agree_msgs[remote_id] = agree;
-    if(m_agree_msgs.count() != GetOverlay()->GetServerIds().size()) {
-      qDebug() << GetOverlay()->GetId() <<
-        "ServerSession::Agree: have" << m_agree_msgs.count() << "of" <<
-        GetOverlay()->GetServerIds().size();
-      return;
-    }
-
-    qDebug() << GetOverlay()->GetId() <<
-      "ServerSession::Agree: finished, handling clients";
-
-    SetServers(m_agree_msgs.values());
-    m_agree = SerializeList<ServerAgree>(GetServers());
-
-    m_state = REGISTERING;
-
-    m_register_timer.Stop();
-    Utils::TimerCallback *cb =
-      new Utils::TimerMethod<ServerSession, int>(this,
-          &ServerSession::FinishClientRegister, 0);
-
-    m_register_timer = Utils::Timer::GetInstance().QueueCallback(cb, ROUND_TIMER);
-
-    foreach(const Connections::Id &remote_id, m_queued_msgs.keys()) {
-      ServerQueued queued(GetServers(), m_queued_msgs[remote_id]->GetNonce(), m_agree);
-      queued.SetSignature(GetPrivateKey()->Sign(queued.GetPayload()));
-      GetOverlay()->SendNotification(remote_id, "Queued", queued.GetPacket());
-    }
-  }
-
-  void ServerSession::HandleQueue(const Messaging::Request &notification)
-  {
-    QSharedPointer<Connections::Connection> sender =
-      notification.GetFrom().dynamicCast<Connections::Connection>();
-
-    if(!sender) {
-      qWarning() << GetOverlay()->GetId() << "ServerSession::Queue: Bad sender:"
-        << notification.GetFrom()->ToString();
-      return;
-    }
-
-    Connections::Id remote_id = sender->GetRemoteId();
-    if(GetOverlay()->IsServer(remote_id)) {
-      qWarning() << GetOverlay()->GetId() << "ServerSession::Queue: is a server:"
-        << remote_id;
-      return;
-    }
-
-    QSharedPointer<ClientQueue> clq(
-        new ClientQueue(notification.GetData().toByteArray()));
-
-    if(m_state == REGISTERING) {
-      ServerQueued queued(GetServers(), clq->GetNonce(), m_agree);
-      queued.SetSignature(GetPrivateKey()->Sign(queued.GetPayload()));
-      GetOverlay()->SendNotification(remote_id, "Queued", queued.GetPacket());
-      // Setup a timer
-    } else {
-      m_queued_msgs[remote_id] = clq;
-    }
-  }
-
-  void ServerSession::HandleRegister(const Messaging::Request &notification)
-  {
-    if(m_state != REGISTERING) {
-      qWarning() << GetOverlay()->GetId() <<
-        "ServerSession::Register: message out of order" <<
-        notification.GetFrom()->ToString() << "Current state:" << m_state;
-      return;
-    }
-
-    QSharedPointer<Connections::Connection> sender =
-      notification.GetFrom().dynamicCast<Connections::Connection>();
-
-    if(!sender) {
-      qWarning() << GetOverlay()->GetId() << "ServerSession::Register: Bad sender:"
-        << notification.GetFrom()->ToString();
-      return;
-    }
-
-    Connections::Id remote_id = sender->GetRemoteId();
-    if(GetOverlay()->IsServer(remote_id)) {
-      qWarning() << GetOverlay()->GetId() << "ServerSession::Register: is a server:"
-        << remote_id;
-      return;
-    }
-
-    QSharedPointer<ClientRegister> clr(
-        new ClientRegister(notification.GetData().toByteArray()));
-    if(m_registered_msgs.contains(remote_id)) {
-      qWarning() << GetOverlay()->GetId() << "ServerSession::Register: already registered";
-      return;
-    } else if(clr->GetId() != remote_id) {
-      qWarning() << GetOverlay()->GetId() << "ServerSession::Register: sender mismatch";
-      return;
-    } else if(!CheckClientRegister(clr)) {
-      return;
-    }
-
-    m_registered_msgs[remote_id] = clr;
-    qDebug() << GetOverlay()->GetId() << "ServerSession::Register:" <<
-      remote_id << "registered";
-  }
-
-  bool ServerSession::CheckClientRegister(const QSharedPointer<ClientRegister> &clr)
-  {
-    if(clr->GetRoundId() != GetRoundId()) {
-      qWarning() << GetOverlay()->GetId() << "ServerSession::CheckClientRegister" <<
-        ": roundid mismatch";
-      return false;
-    } else if(!GetKeyShare()->GetKey(clr->GetId().ToString())->Verify(clr->GetPayload(),
-          clr->GetSignature()))
-    {
-      qWarning() << GetOverlay()->GetId() << "ServerSession::CheckClientRegister" << 
-        ": signature failure";
-      return false;
-    }
-    return true;
-  }
-
-  void ServerSession::FinishClientRegister(const int &)
-  {
-    qDebug() << "ServerSession::FinishClientRegister:" <<
-      "Finished waiting for clients.";
-    SendList();
-  }
-
-  void ServerSession::SendList()
-  {
-    m_state = ROSTERING;
-    SetClients(m_registered_msgs.values());
-    ServerList list(GetClients());
-    list.SetSignature(GetPrivateKey()->Sign(list.GetPayload()));
-
-    foreach(const Connections::Id &remote_id, GetOverlay()->GetServerIds()) {
-      GetOverlay()->SendNotification(remote_id, "List", list.GetPacket());
-    }
-  }
-
-  void ServerSession::HandleList(const Messaging::Request &notification)
-  {
-    if(m_state != AGREEING && m_state != REGISTERING && m_state != ROSTERING) {
-      qWarning() << GetOverlay()->GetId() <<
-        "ServerSession::List: message out of order" <<
-        notification.GetFrom()->ToString() << "Current state:" << m_state;
-      return;
-    }
-
-    QSharedPointer<Connections::Connection> sender =
-      notification.GetFrom().dynamicCast<Connections::Connection>();
-
-    if(!sender) {
-      qWarning() << GetOverlay()->GetId() << "ServerSession::List: Bad sender:"
-        << notification.GetFrom()->ToString();
-      return;
-    }
-
-    Connections::Id remote_id = sender->GetRemoteId();
-    if(!GetOverlay()->IsServer(remote_id)) {
-      qWarning() << GetOverlay()->GetId() << "ServerSession::List: isn't a server:"
-        << remote_id;
-      return;
-    }
-
-    if(m_list_received.contains(remote_id)) {
-      qWarning() << GetOverlay()->GetId() << "ServerSession::List: already have list:"
-        << remote_id;
-      return;
-    }
-
-    ServerList list(notification.GetData().toByteArray());
-    foreach(const QSharedPointer<ClientRegister> &clr, list.GetRegisterList()) {
-      if(!CheckClientRegister(clr)) {
-        return;
-      }
-    }
-
-    foreach(const QSharedPointer<ClientRegister> &clr, list.GetRegisterList()) {
-      if(m_registered_msgs.contains(clr->GetId())) {
-        // go with the lower server entry...
-      }
-      m_registered_msgs[clr->GetId()] = clr;
-    }
-
-    m_list_received[remote_id] = true;
-    if(m_list_received.count() != GetOverlay()->GetServerIds().size()) {
-      qDebug() << GetOverlay()->GetId() <<
-        "ServerSession::List: have" << m_list_received.count() << "of" <<
-        GetOverlay()->GetServerIds().size();
-      return;
-    }
-
-    qDebug() << GetOverlay()->GetId() <<
-      "ServerSession::List: finished, sending VerifyList";
-
-    m_state = VERIFYING;
-    SetClients(m_registered_msgs.values());
-    QByteArray registered = SerializeList<ClientRegister>(GetClients());
-    Crypto::Hash hash;
-    m_registered = hash.ComputeHash(registered);
-    ServerVerifyList verify(GetPrivateKey()->Sign(m_registered));
-    foreach(const Connections::Id &remote_id, GetOverlay()->GetServerIds()) {
-      GetOverlay()->SendNotification(remote_id, "VerifyList", verify.GetPacket());
-    }
-
-    QList<Messaging::Request> queue = m_queue;
-    m_queue.clear();
-    foreach(const Messaging::Request &notification, queue) {
-      if(notification.GetMethod() != "VerifyList") {
-        continue;
-      }
-      HandleVerifyList(notification);
-    }
-  }
-
-  void ServerSession::HandleVerifyList(const Messaging::Request &notification)
-  {
-    if(m_state == ROSTERING) {
-      m_queue.append(notification);
-      return;
-    } else if(m_state != VERIFYING) {
-      qWarning() << GetOverlay()->GetId() <<
-        "ServerSession::VerifyList: message out of order" <<
-        notification.GetFrom()->ToString() << "Current state:" << m_state;
-      return;
-    }
-
-    QSharedPointer<Connections::Connection> sender =
-      notification.GetFrom().dynamicCast<Connections::Connection>();
-
-    if(!sender) {
-      qWarning() << GetOverlay()->GetId() << "ServerSession::VerifyList: Bad sender:"
-        << notification.GetFrom()->ToString();
-      return;
-    }
-
-    Connections::Id remote_id = sender->GetRemoteId();
-    if(!GetOverlay()->IsServer(remote_id)) {
-      qWarning() << GetOverlay()->GetId() << "ServerSession::VerifyList: isn't a server:"
-        << remote_id;
-      return;
-    }
-
-    if(m_verify.contains(remote_id)) {
-      qWarning() << GetOverlay()->GetId() << "ServerSession::VerifyList: already have verification:"
-        << remote_id;
-      return;
-    }
-
-    ServerVerifyList verify(notification.GetData().toByteArray());
-    QByteArray signature = verify.GetSignature();
-    if(!GetKeyShare()->GetKey(remote_id.ToString())->Verify(m_registered, signature)) {
-      qWarning() << GetOverlay()->GetId() << "ServerSession::VerifyList: invalid signature:"
-        << remote_id;
-      return;
-    }
-
-    m_verify[remote_id] = signature;
-    if(m_verify.count() != GetOverlay()->GetServerIds().size()) {
-      qDebug() << GetOverlay()->GetId() <<
-        "ServerSession::VerifyList: have" << m_verify.count() << "of" <<
-        GetOverlay()->GetServerIds().size();
-      return;
-    }
-    
-    qDebug() << GetOverlay()->GetId() <<
-      "ServerSession::VerifyList: finished, sending Start";
-
-    NextRound();
-    GetStateMachine().StateComplete();
-    m_state = COMMUNICATING;
-
-    ServerStart start(GetClients(), m_verify.values());
-    Connections::ConnectionTable &ct = GetOverlay()->GetConnectionTable();
-    foreach(const QSharedPointer<Connections::Connection> &con, ct.GetConnections()) {
-      if(m_registered_msgs.contains(con->GetRemoteId())) {
-        GetOverlay()->SendNotification(con->GetRemoteId(), "Start", start.GetPacket());
-      }
-    }
-    GetRound()->Start();
-    emit RoundStarting(GetRound());
   }
 }
 }

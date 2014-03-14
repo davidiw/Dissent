@@ -35,7 +35,9 @@ namespace Session {
       {
         SetPacket(packet);
         QDataStream stream0(packet);
-        stream0 >> m_payload >> m_signature;
+        qint8 message_type;
+        stream0 >> message_type >> m_payload >> m_signature;
+        Q_ASSERT(message_type == GetMessageType());
 
         QDataStream stream(m_payload);
         QByteArray init;
@@ -126,7 +128,7 @@ namespace Session {
         m_signature = signature;
         QByteArray packet;
         QDataStream stream(&packet, QIODevice::WriteOnly);
-        stream << m_payload << m_signature;
+        stream << GetMessageType() << m_payload << m_signature;
         SetPacket(packet);
       }
 

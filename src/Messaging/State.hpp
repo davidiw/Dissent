@@ -15,12 +15,10 @@ namespace Messaging {
        * Result of processing a packet
        */
       enum ProcessResult {
-        Ignore,
-        NoChange,
-        NextState,
-        Restart,
-        ProcessMessage,
-        StoreMessage
+        NoChange = 0,
+        StoreMessage = 1,
+        NextState = 2,
+        Restart = 4 
       };
 
       /**
@@ -44,29 +42,16 @@ namespace Messaging {
         return NoChange;
       }
 
-      /**
-       * Checks to see what to do with this message
-       * @param msg The message to check
-       */
-      virtual ProcessResult CheckPacket(const QSharedPointer<Message> &msg)
+      virtual ProcessResult Process(const QSharedPointer<ISender> &from,
+          const QSharedPointer<Message> &msg)
       {
         if(m_msg_type == msg->GetMessageType()) {
-          return ProcessMessage;
-        } else if(StorePacket(msg)) {
-          return StoreMessage;
-        } else if(RestartPacket(msg)) {
-          return Restart;
-        } else {
-          return Ignore;
+          return ProcessPacket(from, msg);
+        } else if(m_handlers.contains(msg->GetMessageType())) {
+          return m_handlers[msg->GetMessageType()]->Callback(from, msg);
         }
+        return NoChange;
       }
-
-      /**
-       * Processes the messages intended for this state
-       * @param msg The message to process
-       */
-      virtual ProcessResult ProcessPacket(const QSharedPointer<ISender> &from,
-          const QSharedPointer<Message> &msg) = 0;
 
       /**
        * Returns the states message type
@@ -88,6 +73,41 @@ namespace Messaging {
       void UnsetStateChangeHandler() { m_state_change.clear(); }
 
     protected:
+      class StateCallback {
+        public:
+          virtual ~StateCallback() {}
+          virtual ProcessResult Callback( const QSharedPointer<ISender> &from,
+              const QSharedPointer<Message> &msg) = 0;
+      };
+
+      template <typename T> class StateCallbackImpl : public StateCallback {
+        public:
+          typedef ProcessResult (T::*MessageHandler)(
+              const QSharedPointer<ISender> &, const QSharedPointer<Message> &);
+
+          StateCallbackImpl(T *obj, MessageHandler hand) :
+            m_obj(obj),
+            m_hand(hand)
+          {
+          }
+
+          virtual ProcessResult Callback( const QSharedPointer<ISender> &from,
+              const QSharedPointer<Message> &msg)
+          {
+            return (m_obj->*m_hand)(from, msg);
+          }
+
+        private:
+          T *m_obj;
+          MessageHandler m_hand;
+      };
+
+      void AddMessageProcessor(qint8 msg_type,
+          const QSharedPointer<StateCallback> &handler)
+      {
+        m_handlers[msg_type] = handler;
+      }
+
       void StateChange(ProcessResult pr)
       {
         if(m_state_change) {
@@ -97,23 +117,17 @@ namespace Messaging {
 
     private:
       /**
-       * @param msg
+       * Handles the default packet type for this state
+       * @param msg The message to process
        */
-      virtual bool StorePacket(const QSharedPointer<Message> &msg) const = 0;
-
-      /**
-       * @param msg
-       */
-      virtual bool RestartPacket(const QSharedPointer<Message> &msg) const = 0;
-
-      /**
-       * @param msg
-       */
+      virtual ProcessResult ProcessPacket(const QSharedPointer<ISender> &from,
+          const QSharedPointer<Message> &msg) = 0;
 
       QSharedPointer<StateData> m_data;
       qint8 m_state;
       qint8 m_msg_type;
       StateChangeHandler m_state_change;
+      QHash<qint8, QSharedPointer<StateCallback> > m_handlers;
   };
 
   class AbstractStateFactory {

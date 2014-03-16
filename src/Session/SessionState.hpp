@@ -83,17 +83,15 @@ namespace Session {
       {
         return GetStateData().dynamicCast<SessionSharedState>();
       }
+  };
 
-    private:
-      virtual bool StorePacket(const QSharedPointer<Messaging::Message> &) const
+  class StoreMessage {
+    public:
+      Messaging::State::ProcessResult Store(
+          const QSharedPointer<Messaging::ISender> &,
+          const QSharedPointer<Messaging::Message> &)
       {
-        return false;
-      }
-
-      virtual bool RestartPacket(const QSharedPointer<Messaging::Message> &msg) const
-      {
-        // We could move all the verification logic here too
-        return (msg->GetMessageType() == SessionMessage::ServerStop);
+        return Messaging::State::StoreMessage;
       }
   };
 
@@ -124,7 +122,7 @@ namespace Session {
 
       virtual ~SessionStateMachine() {}
 
-      virtual void HandleConnection(const Connections::Id &connector)
+      void HandleConnection(const Connections::Id &connector)
       {
         ResultProcessor(GetCurrentState().dynamicCast<SessionState>()->HandleConnection(connector));
       }
@@ -132,7 +130,7 @@ namespace Session {
       /**
        * A lost connection
        */
-      virtual void HandleDisconnection(const Connections::Id &disconnector)
+      void HandleDisconnection(const Connections::Id &disconnector)
       {
         ResultProcessor(GetCurrentState().dynamicCast<SessionState>()->HandleDisconnection(disconnector));
       }

@@ -110,13 +110,27 @@ namespace Server {
             SessionStates::Offline,
             SessionMessage::None)
       {
+        AddMessageProcessor(SessionMessage::ServerInit,
+            QSharedPointer<StateCallback>(new StateCallbackImpl<OfflineState>(this,
+                &OfflineState::HandleServerInit)));
+        AddMessageProcessor(SessionMessage::ServerEnlist,
+            QSharedPointer<StateCallback>(new StateCallbackImpl<OfflineState>(this,
+                &OfflineState::HandleServerEnlist)));
       }
 
     private:
-      virtual bool StorePacket(const QSharedPointer<Messaging::Message> &msg) const
+      ProcessResult HandleServerInit(
+          const QSharedPointer<Messaging::ISender> &,
+          const QSharedPointer<Messaging::Message> &)
       {
-        return (msg->GetMessageType() == SessionMessage::ServerEnlist ||
-            msg->GetMessageType() == SessionMessage::ServerInit);
+        return StoreMessage;
+      }
+
+      ProcessResult HandleServerEnlist(
+          const QSharedPointer<Messaging::ISender> &,
+          const QSharedPointer<Messaging::Message> &)
+      {
+        return StoreMessage;
       }
   };
 
@@ -127,6 +141,12 @@ namespace Server {
             SessionStates::WaitingForServers,
             SessionMessage::None)
       {
+        AddMessageProcessor(SessionMessage::ServerInit,
+            QSharedPointer<StateCallback>(new StateCallbackImpl<WaitingForServersState>(this,
+                &WaitingForServersState::HandleServerInit)));
+        AddMessageProcessor(SessionMessage::ServerEnlist,
+            QSharedPointer<StateCallback>(new StateCallbackImpl<WaitingForServersState>(this,
+                &WaitingForServersState::HandleServerEnlist)));
       }
 
       virtual ProcessResult Init()
@@ -154,10 +174,18 @@ namespace Server {
       }
 
     private:
-      virtual bool StorePacket(const QSharedPointer<Messaging::Message> &msg) const
+      ProcessResult HandleServerInit(
+          const QSharedPointer<Messaging::ISender> &,
+          const QSharedPointer<Messaging::Message> &)
       {
-        return (msg->GetMessageType() == SessionMessage::ServerInit) ||
-          (msg->GetMessageType() == SessionMessage::ServerEnlist);
+        return StoreMessage;
+      }
+
+      ProcessResult HandleServerEnlist(
+          const QSharedPointer<Messaging::ISender> &,
+          const QSharedPointer<Messaging::Message> &)
+      {
+        return StoreMessage;
       }
 
       bool CheckServers()
@@ -192,6 +220,9 @@ namespace Server {
             SessionStates::Init,
             SessionMessage::ServerInit)
       {
+        AddMessageProcessor(SessionMessage::ServerEnlist,
+            QSharedPointer<StateCallback>(new StateCallbackImpl<InitState>(this,
+                &InitState::HandleServerEnlist)));
       }
 
       virtual ProcessResult Init()
@@ -264,9 +295,11 @@ namespace Server {
       }
 
     private:
-      virtual bool StorePacket(const QSharedPointer<Messaging::Message> &msg) const
+      ProcessResult HandleServerEnlist(
+          const QSharedPointer<Messaging::ISender> &,
+          const QSharedPointer<Messaging::Message> &)
       {
-        return (msg->GetMessageType() == SessionMessage::ServerEnlist);
+        return StoreMessage;
       }
   };
 
@@ -277,6 +310,9 @@ namespace Server {
             SessionStates::Enlist,
             SessionMessage::ServerEnlist)
       {
+        AddMessageProcessor(SessionMessage::ServerAgree,
+            QSharedPointer<StateCallback>(new StateCallbackImpl<EnlistState>(this,
+                &EnlistState::HandleServerAgree)));
       }
 
       virtual ProcessResult Init()
@@ -356,9 +392,11 @@ namespace Server {
       }
 
     private:
-      virtual bool StorePacket(const QSharedPointer<Messaging::Message> &msg) const
+      ProcessResult HandleServerAgree(
+          const QSharedPointer<Messaging::ISender> &,
+          const QSharedPointer<Messaging::Message> &)
       {
-        return (msg->GetMessageType() == SessionMessage::ServerAgree);
+        return StoreMessage;
       }
 
       ServerSessionSharedState::EnlistMap m_enlist_msgs;
@@ -372,6 +410,12 @@ namespace Server {
             SessionStates::Agree,
             SessionMessage::ServerAgree)
       {
+        AddMessageProcessor(SessionMessage::ClientRegister,
+            QSharedPointer<StateCallback>(new StateCallbackImpl<AgreeState>(this,
+                &AgreeState::HandleClientRegister)));
+        AddMessageProcessor(SessionMessage::ServerList,
+            QSharedPointer<StateCallback>(new StateCallbackImpl<AgreeState>(this,
+                &AgreeState::HandleServerList)));
       }
 
       virtual ProcessResult Init()
@@ -451,10 +495,18 @@ namespace Server {
       }
 
     private:
-      virtual bool StorePacket(const QSharedPointer<Messaging::Message> &msg) const
+      ProcessResult HandleClientRegister(
+          const QSharedPointer<Messaging::ISender> &,
+          const QSharedPointer<Messaging::Message> &)
       {
-        return (msg->GetMessageType() == SessionMessage::ClientRegister) ||
-          (msg->GetMessageType() == SessionMessage::ServerList);
+        return StoreMessage;
+      }
+
+      ProcessResult HandleServerList(
+          const QSharedPointer<Messaging::ISender> &,
+          const QSharedPointer<Messaging::Message> &)
+      {
+        return StoreMessage;
       }
 
       ServerSessionSharedState::AgreeMap m_agree_msgs;
@@ -467,6 +519,9 @@ namespace Server {
             SessionStates::Registering,
             SessionMessage::ClientRegister)
       {
+        AddMessageProcessor(SessionMessage::ServerList,
+            QSharedPointer<StateCallback>(new StateCallbackImpl<RegisteringState>(this,
+                &RegisteringState::HandleServerList)));
       }
 
       virtual ProcessResult Init()
@@ -533,9 +588,11 @@ namespace Server {
       }
 
     private:
-      virtual bool StorePacket(const QSharedPointer<Messaging::Message> &msg) const
+      ProcessResult HandleServerList(
+          const QSharedPointer<Messaging::ISender> &,
+          const QSharedPointer<Messaging::Message> &)
       {
-        return (msg->GetMessageType() == SessionMessage::ServerList);
+        return StoreMessage;
       }
 
       /**
@@ -564,6 +621,9 @@ namespace Server {
             SessionStates::ListExchange,
             SessionMessage::ServerList)
       {
+        AddMessageProcessor(SessionMessage::ServerVerifyList,
+            QSharedPointer<StateCallback>(new StateCallbackImpl<ListExchangeState>(this,
+                &ListExchangeState::HandleServerVerifyList)));
       }
 
       virtual ProcessResult Init()
@@ -644,9 +704,11 @@ namespace Server {
       }
 
     private:
-      virtual bool StorePacket(const QSharedPointer<Messaging::Message> &msg) const
+      ProcessResult HandleServerVerifyList(
+          const QSharedPointer<Messaging::ISender> &,
+          const QSharedPointer<Messaging::Message> &)
       {
-        return (msg->GetMessageType() == SessionMessage::ServerVerifyList);
+        return StoreMessage;
       }
 
       QMap<Connections::Id, bool> m_list_received;
@@ -660,6 +722,9 @@ namespace Server {
             SessionStates::VerifyList,
             SessionMessage::ServerVerifyList)
       {
+        AddMessageProcessor(SessionMessage::SessionData,
+            QSharedPointer<StateCallback>(new StateCallbackImpl<VerifyListState>(this,
+                &VerifyListState::HandleData)));
       }
 
       virtual ProcessResult Init()
@@ -738,9 +803,11 @@ namespace Server {
       }
 
     private:
-      virtual bool StorePacket(const QSharedPointer<Messaging::Message> &msg) const
+      ProcessResult HandleData(
+          const QSharedPointer<Messaging::ISender> &,
+          const QSharedPointer<Messaging::Message> &)
       {
-        return (msg->GetMessageType() == SessionMessage::SessionData);
+        return StoreMessage;
       }
 
       ServerSessionSharedState::VerifyMap m_verify;
@@ -754,6 +821,12 @@ namespace Server {
             SessionStates::Communicating,
             SessionMessage::SessionData)
       {
+        AddMessageProcessor(SessionMessage::ServerInit,
+            QSharedPointer<StateCallback>(new StateCallbackImpl<CommState>(this,
+                &CommState::HandleServerInit)));
+        AddMessageProcessor(SessionMessage::ServerEnlist,
+            QSharedPointer<StateCallback>(new StateCallbackImpl<CommState>(this,
+                &CommState::HandleServerEnlist)));
       }
 
       virtual ProcessResult Init()
@@ -801,10 +874,18 @@ namespace Server {
       }
 
     private:
-      virtual bool StorePacket(const QSharedPointer<Messaging::Message> &msg) const
+      ProcessResult HandleServerInit(
+          const QSharedPointer<Messaging::ISender> &,
+          const QSharedPointer<Messaging::Message> &)
       {
-        return (msg->GetMessageType() == SessionMessage::ServerInit) ||
-          (msg->GetMessageType() == SessionMessage::ServerEnlist);
+        return StoreMessage;
+      }
+
+      ProcessResult HandleServerEnlist(
+          const QSharedPointer<Messaging::ISender> &,
+          const QSharedPointer<Messaging::Message> &)
+      {
+        return StoreMessage;
       }
   };
 }

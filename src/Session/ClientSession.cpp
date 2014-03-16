@@ -44,12 +44,17 @@ namespace Client {
             SessionStates::Offline,
             SessionMessage::None)
       {
+        AddMessageProcessor(SessionMessage::ServerQueued,
+            QSharedPointer<StateCallback>(new StateCallbackImpl<OfflineState>(this,
+                &OfflineState::HandleServerQueued)));
       }
 
     private:
-      virtual bool StorePacket(const QSharedPointer<Messaging::Message> &msg) const
+      ProcessResult HandleServerQueued(
+          const QSharedPointer<Messaging::ISender> &,
+          const QSharedPointer<Messaging::Message> &)
       {
-        return (msg->GetMessageType() == SessionMessage::ServerQueued);
+        return StoreMessage;
       }
   };
 
@@ -58,6 +63,9 @@ namespace Client {
       explicit WaitingForServerState(const QSharedPointer<Messaging::StateData> &data) :
         SessionState(data, SessionStates::WaitingForServer, SessionMessage::None)
       {
+        AddMessageProcessor(SessionMessage::ServerQueued,
+            QSharedPointer<StateCallback>(new StateCallbackImpl<WaitingForServerState>(this,
+                &WaitingForServerState::HandleServerQueued)));
       }
 
       virtual ProcessResult Init()
@@ -78,9 +86,11 @@ namespace Client {
       }
 
     private:
-      virtual bool StorePacket(const QSharedPointer<Messaging::Message> &msg) const
+      ProcessResult HandleServerQueued(
+          const QSharedPointer<Messaging::ISender> &,
+          const QSharedPointer<Messaging::Message> &)
       {
-        return (msg->GetMessageType() == SessionMessage::ServerQueued);
+        return StoreMessage;
       }
 
       bool CheckServer()
@@ -167,6 +177,9 @@ namespace Client {
       explicit Registering(const QSharedPointer<Messaging::StateData> &data) :
         SessionState(data, SessionStates::Registering, SessionMessage::ServerStart)
       {
+        AddMessageProcessor(SessionMessage::SessionData,
+            QSharedPointer<StateCallback>(new StateCallbackImpl<Registering>(this,
+                &Registering::HandleData)));
       }
 
       virtual ProcessResult HandleDisconnection(const Connections::Id &id)
@@ -225,9 +238,11 @@ namespace Client {
       }
 
     private:
-      virtual bool StorePacket(const QSharedPointer<Messaging::Message> &msg) const
+      ProcessResult HandleData(
+          const QSharedPointer<Messaging::ISender> &,
+          const QSharedPointer<Messaging::Message> &)
       {
-        return (msg->GetMessageType() == SessionMessage::SessionData);
+        return StoreMessage;
       }
   };
 

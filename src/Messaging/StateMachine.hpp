@@ -54,23 +54,16 @@ namespace Messaging {
       void ProcessData(const QSharedPointer<ISender> &from,
           const QSharedPointer<Message> &msg)
       {
-        State::ProcessResult pr = m_cstate->CheckPacket(msg);
-        switch(pr) {
-          case State::StoreMessage:
-            m_storage.append(MsgPair(from, msg));
-          case State::Ignore:
-            return;
-          case State::ProcessMessage:
-            break;
-          default:
-            qFatal("Invalid ProcessResult");
-        }
-
-        pr = State::NoChange;
+        State::ProcessResult pr = State::NoChange;
         try {
-          pr = m_cstate->ProcessPacket(from, msg);
+          pr = m_cstate->Process(from, msg);
         } catch (Utils::QRunTimeError &err) {
           PrintError(from, err);
+        }
+
+        if(pr & State::StoreMessage) {
+          m_storage.append(MsgPair(from, msg));
+          pr = (State::ProcessResult) (pr & ~State::StoreMessage);
         }
 
         ResultProcessor(pr);
@@ -95,6 +88,9 @@ namespace Messaging {
       {
         m_restart = state;
       }
+
+      QSharedPointer<State> GetCurrentState() { return m_cstate; }
+      QSharedPointer<State> GetCurrentState() const { return m_cstate; }
 
     protected:
       void ResultProcessor(State::ProcessResult pr)
@@ -129,9 +125,6 @@ namespace Messaging {
           ProcessData(mpair.first, mpair.second);
         }
       }
-
-      QSharedPointer<State> GetCurrentState() { return m_cstate; }
-      QSharedPointer<State> GetCurrentState() const { return m_cstate; }
 
       QSharedPointer<StateData> GetStateData() { return m_data; }
       QSharedPointer<StateData> GetStateData() const { return m_data; }

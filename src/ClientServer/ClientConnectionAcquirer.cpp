@@ -36,6 +36,7 @@ namespace ClientServer {
     }
 
     if(m_remote_ids.contains(con->GetRemoteId())) {
+      ConnectToDisconnect(con);
       return;
     }
 
@@ -71,16 +72,15 @@ namespace ClientServer {
     GetConnectionManager()->ConnectTo(m_remote_addrs[idx]);
   }
 
-  void ClientConnectionAcquirer::HandleDisconnection(const QString &)
+  void ClientConnectionAcquirer::HandleDisconnection(
+      const QSharedPointer<Connections::Connection> &,
+      const QString &)
   {
     if(Stopped()) {
       return;
     }
 
-    Connections::Connection *con = qobject_cast<Connections::Connection *>(sender());
-    if(m_remote_ids.contains(con->GetRemoteId())) {
-      AttemptConnection();
-    }
+    AttemptConnection();
   }
 
 }

@@ -33,6 +33,10 @@ namespace ClientServer {
       GetConnectionManager()->ConnectTo(addr);
     }
   }
+
+  void ServerConnectionAcquirer::OnStop()
+  {
+  }
       
   void ServerConnectionAcquirer::HandleConnection(
       const QSharedPointer<Connections::Connection> &con)
@@ -47,6 +51,7 @@ namespace ClientServer {
 
     m_outstanding_addrs.remove(con->GetEdge()->GetRemotePersistentAddress());
     m_outstanding_ids.remove(con->GetRemoteId());
+    ConnectToDisconnect(con);
 
     if(m_outstanding_ids.size() == 0) {
       m_outstanding_addrs.clear();
@@ -72,14 +77,18 @@ namespace ClientServer {
     GetConnectionManager()->ConnectTo(addr);
   }
 
-  void ServerConnectionAcquirer::HandleDisconnection(const QString &)
+  void ServerConnectionAcquirer::HandleDisconnection(
+      const QSharedPointer<Connections::Connection> &con,
+      const QString &)
   {
     if(Stopped()) {
       return;
     }
 
-    Connections::Connection *con = qobject_cast<Connections::Connection *>(sender());
-    GetConnectionManager()->ConnectTo(con->GetEdge()->GetRemotePersistentAddress());
+    m_outstanding_ids.insert(con->GetRemoteId());
+    Transports::Address addr = con->GetEdge()->GetRemotePersistentAddress();
+    m_outstanding_addrs.insert(addr);
+    GetConnectionManager()->ConnectTo(addr);
   }
 
 }

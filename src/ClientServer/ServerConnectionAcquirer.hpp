@@ -17,8 +17,6 @@ namespace ClientServer {
    * Used to determine whom to connect to.
    */
   class ServerConnectionAcquirer : public Connections::ConnectionAcquirer {
-    Q_OBJECT
-
     public:
       /**
        * Create a ConnectionAcquirer
@@ -39,6 +37,8 @@ namespace ClientServer {
        * Start creating connections!
        */
       virtual void OnStart();
+
+      virtual void OnStop();
       
     private:
       /**
@@ -55,13 +55,14 @@ namespace ClientServer {
           const Transports::Address &addr,
           const QString &reason);
 
+      virtual void HandleDisconnection(
+          const QSharedPointer<Connections::Connection> &con,
+          const QString &reason);
+
       const QList<Transports::Address> m_remote_addrs;
       const QList<Connections::Id> m_remote_ids;
       QSet<Connections::Id> m_outstanding_ids;
       QSet<Transports::Address> m_outstanding_addrs;
-
-    private slots:
-      void HandleDisconnection(const QString &reason);
   };
 }
 }

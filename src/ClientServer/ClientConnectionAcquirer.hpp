@@ -15,8 +15,6 @@ namespace ClientServer {
    * Used to determine whom to connect to.
    */
   class ClientConnectionAcquirer : public Connections::ConnectionAcquirer {
-    Q_OBJECT
-
     public:
       /**
        * Create a ConnectionAcquirer
@@ -58,13 +56,17 @@ namespace ClientServer {
           const Transports::Address &addr,
           const QString &reason);
 
+      /**
+       * A disconnected connection
+       */
+      virtual void HandleDisconnection(
+          const QSharedPointer<Connections::Connection> &con,
+          const QString &reason);
+
       void AttemptConnection();
 
       const QList<Transports::Address> m_remote_addrs;
       const QList<Connections::Id> m_remote_ids;
-
-    private slots:
-      void HandleDisconnection(const QString &reason);
   };
 }
 }

@@ -160,15 +160,17 @@ Upon conclusion of producing a RoundId, servers distribute an Agree message,
 which contains most of the fields of the Enlist message; however, the Init
 Message will be replaced by the RoundId.
 
-A -> B Agree ([PeerId_A | RoundId | EphemeralPublicKey_A |
+A -> B Agree ([PeerId_A | RoundId | Timestamp | EphemeralPublicKey_A |
                Optional_A]_[Signature_A])
 
 - PeerId_A - Connections::Id as QByteArray - A's overlay Id
 - RoundId - QByteArray - RoundId to be used in the upcoming protocol round
+- Timestamp - 64-bit integer - Copied from the Init messages, so clients can
+  distinguish causality of Queued messages
 - EphemeralPublicKey_A - QByteArray of DSA key - A's ephemeral key to be used
   in operations during protocol exchanges
 - Optional_A - QVariant - Additional data necessary for the protocol round
-- Signature_A - QByteArray - Signature on [PeerId_A | RoundId |
+- Signature_A - QByteArray - Signature on [PeerId_A | RoundId | Timestamp |
   EphemeralPublicKey_A | Optional_A], should use A's well known public key
 
 ==============================================================================
@@ -178,27 +180,14 @@ IV.   Round bootstrapping -- Client Setup
 At the conclusion of this process, servers allow clients to register.  Prior to
 registering, clients must connect to a server using the same process as servers
 connect to each other, Inquire and Inquired messages. First establishing a
-transport-level connection, followed by an overlay-level connection.
+transport-level connection, followed by an overlay-level connection.  When the
+servers have completed the round identifier generation, they notify each
+connected client via a Queued message containing the accumulated Agree messages
+exchanged by the servers.  
 
-During registration, clients first transmit a Queue message to enter the
-registration queue. Queue messages contain a client temporary nonce as a means
-to authenticate the upstream servers to prevent replay attacks.
-
-C -> S Queue (Nonce_C)
-
-- Nonce_C - QByteArray - Client introduced nonce to prevent man in the middle
-  attacks between the client and the upstream server
-
-When the servers have completed the round identifier generation, they respond
-to these messages with a Queued message containing the accumulated Agree
-messages exchanged by the servers.  
-
-S -> C Queued ([AgreeMessages | Nonce_C]_[Signature_S])
+S -> C Queued (AgreeMessages)
 
 - AgreeMessages - All of the server Agree messages
-- Nonce_C - The client nonce specified in the Queue message
-- Signature - QByteArray - Signature on [Agree Messages | Nonce_C],
-  should use the servers well known public key that matches the PeerId
 
 Clients then respond with a Register message containing a third-party
 verifiable authentication context, a signature using private key cryptography,
@@ -300,11 +289,8 @@ VI.   Technical notes
 ==============================================================================
 
 - Dissent does not directly provide peer-level authentication, that is left to
-  the transport. For anonymous authentication, that means that clients will not
-  be required to authenticate. If peers perform authentication, the identity
-  should be matched against what is provided at the overlay level.
-- Start and Started merely provide for synchronization on messages that may be
-  transmitted by the round.
+  the transport.  If peers perform authentication, the identity should be
+  matched against what is provided at the overlay level.
 - Start may optionally contain group-wide information, if the Anonymity protocol
   requires it. In particular, this might be the Accumulated List of Queued and
   matching signatures from the Listed messages.
@@ -335,41 +321,3 @@ Round - an instance of a protocol execution, where some subset of the entities
 
 Exchange - some rounds support multiple transmissions from participants,
   each transmission and resulting cleartext constitutes an exchange
-
-==============================================================================
-VIII. Message formats
-==============================================================================
-
-A message either is a request, response, or notification. A request and
-notification are RPC. A request expects a response in return.  Dissent stores
-these messages as QVariantLists into QByteArrays using QDataStream. All incoming
-messages also contain a path to the remote sender, so that a receiver can easily
-determine the source of a message.
-
-A request and notification use the following format: [Type, Id, Method, Data]
-The fields are defined as follows:
-- Type - QString - the type of message, 'n' - notification,  'r' - response,
-    'p' - response
-- Id - int - unique identifier for a request, that is included within the response
-    so that it can be routed to the correct requestor
-- Method - QString - the remote procedure
-- Data - QVariant - data for the RPC
-
-A response uses the following format: [Type, Id, Success, Data / Error]
-- Type - QString - the type of message, 'n' - notification,  'r' - response,
-    'p' - response
-- Id - int - unique identifier for a request, that is included within the response
-    so that it can be routed to the correct requestor
-- Method - bool - whether or not the request was successfully handled
-- Data - QVariant - response data for the procedure call
-- Error - int - error code, see ErrorTypes (need doxygen link)
-
-Initiating messages place their name into the Request (or Notification) Method
-field. Responses are implied, therefore their name is not included within the
-Response. The following reprsent the Data portion of a message stored as a
-QVariant.  Messages will be converted into QByteArrays via QDataStream, signed
-if necessary, signed messages will be stored as two QByteArrays stored in
-series via QDataStream. PeerIds are only included for messages that do not
-clearly indicate ownership, single source messages. In messages that contain a
-signature from all servers, the order of signatures is implicitly defined by
-the order in which the servers are listed within the configuration file.

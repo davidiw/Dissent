@@ -124,7 +124,9 @@ namespace Session {
 
       void HandleConnection(const Connections::Id &connector)
       {
-        ResultProcessor(GetCurrentState().dynamicCast<SessionState>()->HandleConnection(connector));
+        if(GetCurrentState()) {
+          ResultProcessor(GetCurrentState().dynamicCast<SessionState>()->HandleConnection(connector));
+        }
       }
 
       /**
@@ -132,7 +134,9 @@ namespace Session {
        */
       void HandleDisconnection(const Connections::Id &disconnector)
       {
-        ResultProcessor(GetCurrentState().dynamicCast<SessionState>()->HandleDisconnection(disconnector));
+        if(GetCurrentState()) {
+          ResultProcessor(GetCurrentState().dynamicCast<SessionState>()->HandleDisconnection(disconnector));
+        }
       }
 
     private:

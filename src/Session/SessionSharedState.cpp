@@ -40,11 +40,12 @@ namespace Session {
     m_server_bytes = SerializeList<ServerAgree>(GetServers());
   }
 
-  void SessionSharedState::CheckServerAgree(const ServerAgree &agree)
+  void SessionSharedState::CheckServerAgree(const ServerAgree &agree,
+      const QByteArray &round_id)
   {
-    if(agree.GetRoundId() != GetRoundId()) {
+    if(agree.GetRoundId() != round_id) {
       throw Utils::QRunTimeError("RoundId mismatch. Expected: " +
-          GetRoundId().toBase64() + ", found: " +
+          round_id.toBase64() + ", found: " +
           agree.GetRoundId().toBase64() + ", from " +
           agree.GetId().ToString());
     }
@@ -60,6 +61,40 @@ namespace Session {
       throw Utils::QRunTimeError("Invalid Ephemeral Key: " +
           agree.GetId().ToString());
     }
+  }
+
+
+  bool SessionSharedState::CheckServerStop(const ServerStop &stop)
+  {
+    if(stop.GetRoundId().isEmpty()) {
+      throw Utils::QRunTimeError("Invalid RoundId");
+    }
+
+    QSharedPointer<Crypto::AsymmetricKey> key =
+      GetKeyShare()->GetKey(stop.GetId().ToString());
+    if(!key->Verify(stop.GetPayload(), stop.GetSignature())) {
+      throw Utils::QRunTimeError("Invalid signature");
+    }
+
+    if(GetRoundId() != stop.GetRoundId()) {
+      throw Utils::QRunTimeError("RoundId mismatch. Expected: " +
+          GetRoundId().toBase64() + ", found: " +
+          stop.GetRoundId().toBase64() + ", from " +
+          stop.GetId().ToString());
+    }
+
+    qDebug() << "Stopping Round:" << GetRoundId().toBase64() <<
+      "Reason:" << stop.GetReason() <<
+      "Immediately: " << stop.GetImmediate();
+    return stop.GetImmediate();
+  }
+
+  Messaging::State::ProcessResult SessionSharedState::DefaultHandleServerStop(
+      const QSharedPointer<Messaging::ISender> &,
+      const QSharedPointer<Messaging::Message> &msg)
+  {
+    CheckServerStop(*(msg.dynamicCast<ServerStop>()));
+    return Messaging::State::Restart;
   }
 
   void SessionSharedState::NextRound()

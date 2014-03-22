@@ -18,7 +18,7 @@ namespace Messaging {
         NoChange = 0,
         StoreMessage = 1,
         NextState = 2,
-        Restart = 4 
+        Restart = 4,
       };
 
       /**

@@ -78,7 +78,7 @@ namespace Client {
 
       virtual ProcessResult HandleConnection(const Connections::Id &connector)
       {
-        if(GetSharedState()->GetOverlay()->IsServer(connector)) {
+        if(!GetSharedState()->GetOverlay()->IsServer(connector)) {
           return NoChange;
         }
 
@@ -105,9 +105,11 @@ namespace Client {
           }
         }
 
-        QSharedPointer<ClientSessionSharedState> state =
-          GetSharedState().dynamicCast<ClientSessionSharedState>();
-        state->SetServer(server->GetRemoteId());
+          QSharedPointer<ClientSessionSharedState> state =
+            GetSharedState().dynamicCast<ClientSessionSharedState>();
+        if(server) {
+          state->SetServer(server->GetRemoteId());
+        }
         return !server.isNull();
       }
   };
@@ -148,7 +150,10 @@ namespace Client {
           GetSharedState().dynamicCast<ClientSessionSharedState>();
 
         QSharedPointer<ServerQueued> queued(msg.dynamicCast<ServerQueued>());
+
         QString server_id = state->GetServer().ToString();
+
+        // We need to check for order in these messages, but for now ... whatever
 
         if(!state->GetKeyShare()->GetKey(server_id)->Verify(
               queued->GetPayload(), queued->GetSignature()))
@@ -161,13 +166,13 @@ namespace Client {
           throw Utils::QRunTimeError("Insufficient agree messages");
         }
 
-        state->SetRoundId(servers[0]->GetRoundId());
-
         foreach(const QSharedPointer<ServerAgree> &agree, servers) {
-          state->CheckServerAgree(*agree);
+          state->CheckServerAgree(*agree, servers[0]->GetRoundId());
         }
 
+        state->SetRoundId(servers[0]->GetRoundId());
         state->SetServers(servers);
+
         return NextState;
       }
   };
@@ -180,6 +185,12 @@ namespace Client {
         AddMessageProcessor(SessionMessage::SessionData,
             QSharedPointer<StateCallback>(new StateCallbackImpl<Registering>(this,
                 &Registering::HandleData)));
+
+        QSharedPointer<SessionSharedState> state =
+          GetSharedState().dynamicCast<SessionSharedState>();
+        AddMessageProcessor(SessionMessage::ServerStop,
+            QSharedPointer<StateCallback>(new StateCallbackImpl<SessionSharedState>(
+                state.data(), &SessionSharedState::DefaultHandleServerStop)));
       }
 
       virtual ProcessResult HandleDisconnection(const Connections::Id &id)
@@ -252,6 +263,12 @@ namespace Client {
           const QSharedPointer<Messaging::StateData> &data) :
         SessionState(data, SessionStates::Communicating, SessionMessage::SessionData)
       {
+        AddMessageProcessor(SessionMessage::ServerQueued,
+            QSharedPointer<StateCallback>(new StateCallbackImpl<CommState>(
+                this, &CommState::HandleServerQueued)));
+        AddMessageProcessor(SessionMessage::ServerStop,
+            QSharedPointer<StateCallback>(new StateCallbackImpl<CommState>(
+                this, &CommState::HandleServerStop)));
       }
 
       virtual ProcessResult Init()
@@ -295,6 +312,30 @@ namespace Client {
         }
         return NoChange;
       }
+
+    private:
+      ProcessResult HandleServerQueued(
+          const QSharedPointer<Messaging::ISender> &,
+          const QSharedPointer<Messaging::Message> &)
+      {
+        return StoreMessage;
+      }
+
+      ProcessResult HandleServerStop(
+          const QSharedPointer<Messaging::ISender> &,
+          const QSharedPointer<Messaging::Message> &msg)
+      {
+        QSharedPointer<ClientSessionSharedState> state =
+          GetSharedState().dynamicCast<ClientSessionSharedState>();
+        QSharedPointer<ServerStop> stop(msg.dynamicCast<ServerStop>());
+
+        if(state->CheckServerStop(*stop)) {
+          state->GetRound()->Stop();
+        } else {
+          state->GetRound()->SetInterrupted();
+        }
+        return NoChange;
+      }
   };
 }
 
@@ -324,7 +365,6 @@ using namespace Client;
     AddMessageParser(new Messaging::MessageParser<ServerStart>(SessionMessage::ServerStart));
     AddMessageParser(new Messaging::MessageParser<ServerStop>(SessionMessage::ServerStop));
 
-
     GetStateMachine().AddTransition(SessionStates::Offline, SessionStates::WaitingForServer);
     GetStateMachine().AddTransition(SessionStates::WaitingForServer, SessionStates::Queuing);
     GetStateMachine().AddTransition(SessionStates::Queuing, SessionStates::Registering);
@@ -332,21 +372,17 @@ using namespace Client;
     GetStateMachine().AddTransition(SessionStates::Communicating, SessionStates::WaitingForServer);
 
     GetStateMachine().SetState(SessionStates::Offline);
+    GetStateMachine().SetRestartState(SessionStates::WaitingForServer);
   }
 
   ClientSession::~ClientSession()
   {
   }
 
-  void ClientSession::HandleRoundFinished()
-  {
-    GetStateMachine().StateComplete();
-  }
-
   void ClientSession::HandleConnection(
       const QSharedPointer<Connections::Connection> &con)
   {
-    if(GetOverlay()->IsServer(con->GetRemoteId())) {
+    if(!GetOverlay()->IsServer(con->GetRemoteId())) {
       return;
     }
 

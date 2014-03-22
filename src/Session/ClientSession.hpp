@@ -49,11 +49,6 @@ namespace Session {
           Anonymity::CreateRound create_round);
 
       /**
-       * Called when a round has been finished to prepare for the next round
-       */
-      virtual void HandleRoundFinished();
-
-      /**
        * New incoming connection
        * @param con the connection
        */

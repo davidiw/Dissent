@@ -9,11 +9,6 @@ namespace Session {
     m_shared_state(shared_state),
     m_sm(shared_state)
   {
-    GetOverlay()->GetRpcHandler()->Register("SessionData", this, "HandleData");
-    QObject::connect(m_shared_state->GetRoundAnnouncer().data(),
-        SIGNAL(Announce(const QSharedPointer<Anonymity::Round> &)),
-        this,
-        SLOT(HandleRoundStartedSlot(const QSharedPointer<Anonymity::Round> &)));
   }
 
   Session::~Session()
@@ -23,6 +18,23 @@ namespace Session {
 
   void Session::OnStart()
   {
+    QList<QSharedPointer<Connections::Connection> > cons =
+      GetSharedState()->GetOverlay()->GetConnectionTable().GetConnections();
+    foreach(const QSharedPointer<Connections::Connection> &con, cons) {
+      HandleConnection(con);
+    }
+
+    GetOverlay()->GetRpcHandler()->Register("SessionData", this, "HandleData");
+    QObject::connect(m_shared_state->GetRoundAnnouncer().data(),
+        SIGNAL(Announce(const QSharedPointer<Anonymity::Round> &)),
+        this,
+        SLOT(HandleRoundStartedSlot(const QSharedPointer<Anonymity::Round> &)));
+
+    QObject::connect(m_shared_state->GetOverlay()->GetConnectionManager().data(),
+        SIGNAL(NewConnection(const QSharedPointer<Connection> &)),
+        this,
+        SLOT(HandleConnectionSlot(const QSharedPointer<Connection> &)));
+
     GetStateMachine().StateComplete();
   }
 
@@ -59,7 +71,7 @@ namespace Session {
       return;
     }
 
-    HandleRoundFinished();
+    GetStateMachine().StateComplete();
   }
 
   void Session::HandleData(const Messaging::Request &notification)
@@ -67,16 +79,17 @@ namespace Session {
     QByteArray packet = notification.GetData().toByteArray();
     QSharedPointer<Messaging::Message> msg = m_md.ParseMessage(packet);
     if(msg->GetMessageType() == Messaging::Message::GetBadMessageType()) {
+      if(packet.size()) {
+        qWarning() << "Found a message of type:" <<
+          SessionMessage::MessageTypeToString(packet[0]) <<
+          "but not valid for current context.";
+      } else {
+        qWarning() << "Found an empty message.";
+      }
       return;
     }
 
     m_sm.ProcessData(notification.GetFrom(), msg);
-  }
-
-  void Session::HandleStop(const Messaging::Request &)
-  {
-    // Is it a valid stop?
-    OnStop();
   }
 
   void Session::HandleConnection(
@@ -88,6 +101,7 @@ namespace Session {
   void Session::HandleDisconnect(
       const QSharedPointer<Connections::Connection> &con)
   {
+    qDebug() << "GREAT";
     GetStateMachine().HandleDisconnection(con->GetRemoteId());
   }
 }

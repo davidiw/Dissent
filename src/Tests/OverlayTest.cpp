@@ -1,10 +1,8 @@
 #include "DissentTest.hpp"
+#include "OverlayTest.hpp"
 
 namespace Dissent {
 namespace Tests {
-  typedef QSharedPointer<Overlay> OverlayPointer;
-  typedef QPair<QList<OverlayPointer>, QList<OverlayPointer> > OverlayNetwork;
-
   OverlayNetwork ConstructOverlay(int servers, int clients)
   {
     Q_ASSERT(servers > 0);

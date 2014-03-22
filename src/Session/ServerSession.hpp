@@ -56,11 +56,6 @@ namespace Session {
 
     private:
       /**
-       * Called when a round has been finished to prepare for the next round
-       */
-      virtual void HandleRoundFinished();
-
-      /**
        * New incoming connection
        * @param con the connection
        */

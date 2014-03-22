@@ -84,14 +84,33 @@ namespace ClientServer {
        */
       inline Connections::Id GetId() { return m_local_id; }
 
+      /**
+       * Returns true if the specified id is a server
+       */
       bool IsServer(const Connections::Id &id) const
       {
         return m_server_ids.contains(id);
       }
       
+      /**
+       * Returns true if local node is a server
+       */
       bool AmServer() const { return m_server; }
 
+      /**
+       * Returns the set of server ids
+       */
       QList<Connections::Id> GetServerIds() const { return m_server_ids; }
+
+      /**
+       * Returns the local end points for this node
+       */
+      QList<Transports::Address> GetLocalEndpoints() const { return m_local_endpoints; }
+
+      /**
+       * Returns the remote end points for this node
+       */
+      QList<Transports::Address> GetRemoteEndpoints() const { return m_remote_endpoints; }
 
       /**
        * Send a notification

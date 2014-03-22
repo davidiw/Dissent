@@ -5,10 +5,12 @@
 
 #include "Anonymity/Round.hpp"
 #include "Crypto/KeyShare.hpp"
+#include "Messaging/State.hpp"
 #include "Messaging/StateData.hpp"
 
 #include "ClientRegister.hpp"
 #include "ServerAgree.hpp"
+#include "ServerStop.hpp"
 
 namespace Dissent {
 namespace ClientServer {
@@ -126,8 +128,26 @@ namespace Session {
 
       /**
        * Verifies that the ServerAgree is properly formed
+       * @param agree the ServerAgree to check
+       * @param round_id the expected round id
        */
-      void CheckServerAgree(const ServerAgree &agree);
+      void CheckServerAgree(const ServerAgree &agree,
+          const QByteArray &round_id);
+
+      /**
+       * Verifies the ServerStop is properly formed
+       * @param stop the ServerStop to check
+       */
+      virtual bool CheckServerStop(const ServerStop &stop);
+
+      /**
+       * Default handler for ServerStop
+       * @param from the sender
+       * @param msg the stop message
+       */
+      Messaging::State::ProcessResult DefaultHandleServerStop(
+          const QSharedPointer<Messaging::ISender> &from,
+          const QSharedPointer<Messaging::Message> &msg);
 
       /**
        * Returns a pointer to round announcer object

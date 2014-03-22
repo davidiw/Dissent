@@ -131,11 +131,6 @@ namespace Session {
 
     private:
       /**
-       * Called when a round has been finished to prepare for the next round
-       */
-      virtual void HandleRoundFinished() = 0;
-
-      /**
        * New incoming connection
        * @param con the connection
        */
@@ -155,6 +150,7 @@ namespace Session {
       QWeakPointer<Session> m_shared;
 
       typedef Messaging::Request Request;
+      typedef Connections::Connection Connection;
 
     private slots:
 
@@ -163,12 +159,6 @@ namespace Session {
        * @param notification a data message
        */
       void HandleData(const Request &notification);
-
-      /**
-       * A server has issued a stop message
-       * @param notification a data message
-       */
-      void HandleStop(const Request &notification);
 
       /**
        * Called when a new round has been created
@@ -184,7 +174,7 @@ namespace Session {
        * A slot wrapper for HandleConnection
        * @param con the connection
        */
-      void HandleConnectionSlot(const QSharedPointer<Connections::Connection> &con)
+      void HandleConnectionSlot(const QSharedPointer<Connection> &con)
       {
         HandleConnection(con);
       }

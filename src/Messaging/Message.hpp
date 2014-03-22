@@ -97,11 +97,15 @@ namespace Messaging {
 
       QSharedPointer<Message> ParseMessage(const QByteArray &packet)
       {
+        static QSharedPointer<Message> bm(new BadMessage());
+        if(packet.isEmpty()) {
+          return bm;
+        }
+
         qint8 mtype = packet[0];
         if(m_amps.contains(mtype)) {
           return m_amps[mtype]->ParseMessage(packet);
         } else {
-          static QSharedPointer<Message> bm(new BadMessage());
           return bm;
         }
       }

@@ -37,30 +37,41 @@ namespace Session {
         Q_ASSERT(message_type == GetMessageType());
 
         QDataStream stream(m_payload);
-        stream >> m_round_id >> m_immediate >> m_reason;
+        stream >> m_peer_id >> m_round_id >> m_immediate >> m_reason;
       }
 
       /**
        * Constructor using fields
+       * @param peer_id the round stopper
        * @param round_id The round identifier
        * @param immediate Should stop now or after the current round has completed
        * @param reason The reason for stopping
        */
-      explicit ServerStop(const QByteArray &round_id,
+      explicit ServerStop(const Connections::Id &peer_id,
+          const QByteArray &round_id,
           bool immediate,
           const QString &reason) :
+        m_peer_id(peer_id),
         m_round_id(round_id),
         m_immediate(immediate),
         m_reason(reason)
       {
         QDataStream stream(&m_payload, QIODevice::WriteOnly);
-        stream << round_id << immediate << reason;
+        stream << peer_id << round_id << immediate << reason;
       }
 
       /**
        * Returns the message type
        */
       virtual qint8 GetMessageType() const { return SessionMessage::ServerStop; }
+
+      /**
+       * Returns the sender's overlay Id
+       */
+      Connections::Id GetId() const
+      {
+        return m_peer_id;
+      }
 
       /**
        * Returns the message excluding the signature as a byte array,
@@ -119,26 +130,13 @@ namespace Session {
     private:
       QByteArray m_payload;
 
+      Connections::Id m_peer_id;
       QByteArray m_round_id;
       bool m_immediate;
       QString m_reason;
 
       QByteArray m_signature;
   };
-
-  inline QDataStream &operator<<(QDataStream &stream, const ServerStop &packet)
-  {
-    stream << packet.GetPacket();
-    return stream;
-  }
-
-  inline QDataStream &operator>>(QDataStream &stream, ServerStop &packet)
-  {
-    QByteArray data;
-    stream >> data;
-    packet = ServerStop(data);
-    return stream;
-  }
 }
 }
 

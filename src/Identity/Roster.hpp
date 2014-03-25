@@ -29,6 +29,12 @@ namespace Identity {
       int GetIndex(const Connections::Id &id) const;
 
       /**
+       * Returns the Id of the specified index
+       * @param index the index into the roster
+       */
+      Connections::Id GetId(int index) const;
+
+      /**
        * Is the specified Id a member of the Group
        * @param id the specified Id
        */

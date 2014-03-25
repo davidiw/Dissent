@@ -18,6 +18,14 @@ namespace Identity {
     return m_id_to_int[id];
   }
 
+  Connections::Id Roster::GetId(int index) const
+  {
+    if(index < 0 || index >= m_roster.size()) {
+      return Connections::Id::Zero();
+    }
+    return m_roster[index].GetId();
+  }
+
   bool Roster::Contains(const Connections::Id &id) const
   {
     return m_id_to_int.contains(id);

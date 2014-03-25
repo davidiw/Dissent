@@ -101,7 +101,6 @@ namespace Session {
   void Session::HandleDisconnect(
       const QSharedPointer<Connections::Connection> &con)
   {
-    qDebug() << "GREAT";
     GetStateMachine().HandleDisconnection(con->GetRemoteId());
   }
 }

@@ -21,6 +21,7 @@ namespace Session {
        */
       explicit SessionData(const QByteArray &packet)
       {
+        Q_ASSERT(packet[0] == SessionMessage::SessionData);
         SetPacket(packet.mid(1));
       }
 

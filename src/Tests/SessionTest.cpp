@@ -1,22 +1,10 @@
 #include "DissentTest.hpp"
 #include "OverlayTest.hpp"
+#include "SessionTest.hpp"
 
 namespace Dissent {
 namespace Tests {
-  typedef QSharedPointer<ServerSession> ServerPointer;
-  typedef QSharedPointer<ClientSession> ClientPointer;
-
-  class Sessions {
-    public:
-      OverlayNetwork network;
-      QList<ServerPointer> servers;
-      QList<ClientPointer> clients;
-      QHash<QString, QSharedPointer<AsymmetricKey> > private_keys;
-      QSharedPointer<KeyShare> keys;
-      QList<QSharedPointer<BufferSink> > sinks;
-  };
-
-  Sessions BuildSessions(const OverlayNetwork &network)
+  Sessions BuildSessions(const OverlayNetwork &network, CreateRound create_round)
   {
     DsaPrivateKey shared_key;
     QSharedPointer<KeyShare> keys(new KeyShare());
@@ -32,7 +20,7 @@ namespace Tests {
       keys->AddKey(server->GetId().ToString(), key->GetPublicKey());
 
       ServerPointer ss = MakeSession<ServerSession>(
-            server, key, keys, TCreateRound<NullRound>);
+            server, key, keys, create_round);
       sessions.servers.append(ss);
       sessions.private_keys[server->GetId().ToString()] = key;
 
@@ -49,7 +37,7 @@ namespace Tests {
       keys->AddKey(client->GetId().ToString(), key->GetPublicKey());
 
       ClientPointer cs = MakeSession<ClientSession>(
-            client, key, keys, TCreateRound<NullRound>);
+            client, key, keys, create_round);
       sessions.clients.append(cs);
       sessions.private_keys[client->GetId().ToString()] = key;
 
@@ -59,6 +47,11 @@ namespace Tests {
     }
     
     return sessions;
+  }
+
+  Sessions BuildSessions(const OverlayNetwork &network)
+  {
+    return BuildSessions(network, TCreateRound<NullRound>);
   }
 
   void StartSessions(const Sessions &sessions)
@@ -130,7 +123,7 @@ namespace Tests {
     }
 
     foreach(const ClientPointer &cs, sessions.clients) {
-      QByteArray msg(128, 0);
+      QByteArray msg(64, 0);
       rand.GenerateBlock(msg);
       messages.append(msg);
       cs->Send(msg);
@@ -142,7 +135,7 @@ namespace Tests {
     foreach(const QSharedPointer<BufferSink> &sink, sessions.sinks) {
       EXPECT_EQ(messages.size(), sink->Count());
       for(int idx = 0; idx < sink->Count(); idx++) {
-        EXPECT_EQ(messages[idx], sink->At(idx).second);
+        EXPECT_TRUE(messages.contains(sink->At(idx).second));
       }
     }
     qDebug() << "Finished SendTest";

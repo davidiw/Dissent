@@ -1,3 +1,6 @@
+#ifndef DISSENT_TEST_OVERLAY_TEST_H_GUARD
+#define DISSENT_TEST_OVERLAY_TEST_H_GUARD
+
 #include "DissentTest.hpp"
 
 namespace Dissent {
@@ -12,3 +15,5 @@ namespace Tests {
   void VerifyStoppedNetwork(const OverlayNetwork &network);
 }
 }
+
+#endif

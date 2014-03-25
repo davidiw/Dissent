@@ -34,13 +34,53 @@ namespace Anonymity {
     emit Finished();
   }
 
+  void Round::VerifiableSend(const Connections::Id &to,
+      const QByteArray &data)
+  {
+    QByteArray msg = QByteArray(1, 127) + data + GetKey()->Sign(data);
+    GetOverlay()->SendNotification(to, "SessionData", msg);
+  }
+
+  void Round::VerifiableBroadcast(const QByteArray &data)
+  {
+    QByteArray msg = QByteArray(1, 127) + data + GetKey()->Sign(data);
+    GetOverlay()->Broadcast("SessionData", msg);
+  }
+
+  void Round::VerifiableBroadcastToServers(const QByteArray &data)
+  {
+    Q_ASSERT(GetOverlay()->AmServer());
+
+    QByteArray msg = QByteArray(1, 127) + data + GetKey()->Sign(data);
+    foreach(const Connections::Id &id, GetOverlay()->GetServerIds()) {
+      GetOverlay()->SendNotification(id, "SessionData", msg);
+    }
+  }
+
+  void Round::VerifiableBroadcastToClients(const QByteArray &data)
+  {
+    Q_ASSERT(GetOverlay()->AmServer());
+
+    QByteArray msg = QByteArray(1, 127) + data + GetKey()->Sign(data);
+    foreach(const QSharedPointer<Connections::Connection> &con,
+        GetOverlay()->GetConnectionTable().GetConnections())
+    {
+      if(!GetOverlay()->IsServer(con->GetRemoteId())) {
+        GetOverlay()->SendNotification(con->GetRemoteId(), "SessionData", msg);
+      }
+    }
+  }
+
   bool Round::Verify(const Connections::Id &from,
       const QByteArray &data, QByteArray &msg)
   {
     QSharedPointer<Crypto::AsymmetricKey> key = GetServers().GetKey(from);
     if(key.isNull()) {
-      qDebug() << "Received malsigned data block, no such peer";
-      return false;
+      key = GetClients().GetKey(from);
+      if(key.isNull()) {
+        qDebug() << "Received malsigned data block, no such peer";
+        return false;
+      }
     }
 
     int sig_size = key->GetSignatureLength();

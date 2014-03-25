@@ -177,26 +177,30 @@ namespace Anonymity {
       bool Verify(const Connections::Id &from, const QByteArray &data, QByteArray &msg);
 
       /**
-       * Signs and encrypts a message before broadcasting
-       * @param data the message to broadcast
+       * Signs and encrypts a message before sending it to all participants
+       * @param data the message to send
        */
-      virtual inline void VerifiableBroadcast(const QByteArray &data)
-      {
-        QByteArray msg = data + GetKey()->Sign(data);
-        GetOverlay()->Broadcast("Session::Data", msg);
-      }
+      void VerifiableBroadcast(const QByteArray &data);
+
+      /**
+       * Signs and encrypts a message before sending it to all downstream clients
+       * @param data the message to send
+       */
+      void VerifiableBroadcastToClients(const QByteArray &data);
+
+      /**
+       * Signs and encrypts a message before sending it to all servers
+       * @param data the message to send
+       */
+      void VerifiableBroadcastToServers(const QByteArray &data);
 
       /**
        * Signs and encrypts a message before sending it to a sepecific peer
        * @param to the peer to send it to
        * @param data the message to send
        */
-      virtual inline void VerifiableSend(const Connections::Id &to,
-          const QByteArray &data)
-      {
-        QByteArray msg = data + GetKey()->Sign(data);
-        GetOverlay()->SendNotification(to, "Session::Data", msg);
-      }
+      void VerifiableSend(const Connections::Id &to,
+          const QByteArray &data);
 
       /**
        * Returns the data to be sent during this round

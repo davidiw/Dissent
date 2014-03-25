@@ -33,6 +33,7 @@ inline bool RunUntil(const SignalCounter &sc, int count)
     Time::GetInstance().IncrementVirtualClock(next);
     next = Timer::GetInstance().VirtualRun();
   }
+  qDebug() << next;
 
   return sc.GetCount() == count;
 }

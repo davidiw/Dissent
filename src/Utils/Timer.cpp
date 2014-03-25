@@ -116,6 +116,7 @@ namespace Utils {
         break;
       }
     }
+    qDebug() << _queue.size() << next;
     return next;
   }
 
@@ -128,10 +129,20 @@ namespace Utils {
     qint64 next = Run();
     // @TODO make Utils::ThreadPool that for virtual clock runs the task
     // inline as opposed to another thread
-    QThreadPool::globalInstance()->waitForDone();
+    if(QThreadPool::globalInstance()->activeThreadCount()) {
+      QThreadPool::globalInstance()->waitForDone();
+      if(next == -1) {
+        next = VirtualRun();
+      }
+    }
 
-    QCoreApplication::processEvents();
-    QCoreApplication::sendPostedEvents();
+    if(QCoreApplication::hasPendingEvents()) {
+      QCoreApplication::processEvents();
+      QCoreApplication::sendPostedEvents();
+      if(next == -1) {
+        next = VirtualRun();
+      }
+    }
 
     return next;
   }

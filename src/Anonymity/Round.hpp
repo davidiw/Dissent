@@ -150,6 +150,16 @@ namespace Anonymity {
        */
       QDateTime GetStartTime() const { return m_start_time; }
 
+      /**
+       * Sets the header bytes
+       */
+      void SetHeaderBytes(const QByteArray &header) { m_header = header; }
+
+      /**
+       * Return the header bytes
+       */
+      QByteArray GetHeaderBytes() const { return m_header; }
+
     signals:
       /**
        * Emitted when the Round is closed for good or bad.
@@ -239,7 +249,12 @@ namespace Anonymity {
       /**
        * Returns the underlyign network
        */
-      QSharedPointer<ClientServer::Overlay> &GetOverlay() { return m_overlay; }
+      QSharedPointer<ClientServer::Overlay> GetOverlay() { return m_overlay; }
+
+      /**
+       * Returns the underlyign network
+       */
+      QSharedPointer<ClientServer::Overlay> GetOverlay() const { return m_overlay; }
 
       static constexpr float PERCENT_ACTIVE = -1.0;
 
@@ -279,6 +294,7 @@ namespace Anonymity {
       QVector<int> m_empty_list;
       bool m_interrupted;
       QWeakPointer<Round> m_shared;
+      QByteArray m_header;
   };
 
   inline QDebug operator<<(QDebug dbg, const QSharedPointer<Round> &round)

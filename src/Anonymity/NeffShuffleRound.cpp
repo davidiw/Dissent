@@ -291,8 +291,11 @@ namespace Anonymity {
     int index = GetServers().GetIndex(from);
     if(index == _server_state->new_end_verify_idx) {
       int start = index;
-      for(; _server_state->shuffle_proof.contains(GetServers().GetId(index));
-          index++);
+      while(index < GetServers().Count() && 
+        _server_state->shuffle_proof.contains(GetServers().GetId(index)))
+      {
+        index++;
+      }
       int increment = index - start;
 
       if(_server_state->verifying) {

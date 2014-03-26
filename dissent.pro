@@ -58,6 +58,8 @@ SOURCES += ext/qxt/qxtcommandoptions.cpp
 INCLUDEPATH += src
 
 HEADERS += src/Dissent.hpp \
+           src/Anonymity/BaseDCNetRound.hpp \
+           src/Anonymity/CSDCNetRound.hpp \
            src/Anonymity/Log.hpp \
            src/Anonymity/NeffShuffleRound.hpp \
            src/Anonymity/NullRound.hpp \
@@ -199,7 +201,9 @@ HEADERS += src/Dissent.hpp \
            src/Web/WebServer.hpp \
            src/Web/WebService.hpp 
 
-SOURCES += src/Anonymity/Log.cpp \
+SOURCES += src/Anonymity/BaseDCNetRound.cpp \
+           src/Anonymity/CSDCNetRound.cpp \
+           src/Anonymity/Log.cpp \
            src/Anonymity/NeffShuffleRound.cpp \
            src/Anonymity/NullRound.cpp \
            src/Anonymity/Round.cpp \

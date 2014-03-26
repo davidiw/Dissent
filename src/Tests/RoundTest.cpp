@@ -4,7 +4,7 @@
 
 namespace Dissent {
 namespace Tests {
-  template <typename T> void TestRoundBasic()
+  void TestRoundBasic(CreateRound create_round)
   {
     Timer::GetInstance().UseVirtualTime();
     ConnectionManager::UseTimer = false;
@@ -13,11 +13,10 @@ namespace Tests {
     StartNetwork(net);
     VerifyNetwork(net);
 
-    Sessions sessions = BuildSessions<T>(net);
+    Sessions sessions = BuildSessions(net, create_round);
     qDebug() << "Starting sessions...";
     StartSessions(sessions);
     SendTest(sessions);
-    /*
     SendTest(sessions);
     DisconnectServer(sessions, true);
     SendTest(sessions);
@@ -28,13 +27,17 @@ namespace Tests {
 
     StopNetwork(sessions.network);
     VerifyStoppedNetwork(sessions.network);
-    */
     ConnectionManager::UseTimer = true;
   }
 
   TEST(NeffShuffleRound, Basic)
   {
-    TestRoundBasic<NeffShuffleRound>();
+    TestRoundBasic(TCreateRound<NeffShuffleRound>);
+  }
+
+  TEST(CSDCNetRound, Basic)
+  {
+    TestRoundBasic(TCreateDCNetRound<CSDCNetRound, NullRound>);
   }
 }
 }

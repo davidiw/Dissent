@@ -9,7 +9,7 @@ namespace Anonymity {
       const QSharedPointer<ClientServer::Overlay> &overlay,
       Messaging::GetDataCallback &get_data) :
     Round(clients, servers, ident, nonce, overlay, get_data),
-    m_received(servers.Count() + clients.Count()),
+    m_received(clients.Count()),
     m_msgs(0)
   {
   }
@@ -17,9 +17,12 @@ namespace Anonymity {
   void NullRound::OnStart()
   {
     Round::OnStart();
+    if(GetOverlay()->AmServer()) {
+      return;
+    }
+
     QPair<QByteArray, bool> data = GetData(1024);
-    QByteArray msg = data.first;
-    msg.prepend(127);
+    QByteArray msg = GetHeaderBytes() + data.first;
     GetOverlay()->Broadcast("SessionData", msg);
   }
 
@@ -30,17 +33,12 @@ namespace Anonymity {
       return;
     }
 
-    if(!GetServers().Contains(from) && !GetClients().Contains(from)) {
+    if(!GetClients().Contains(from)) {
       qDebug() << ToString() << " received wayward message from: " << from;
       return;
     }
 
-    int idx = 0;
-    if(GetOverlay()->IsServer(from)) {
-      idx = GetServers().GetIndex(from);
-    } else {
-      idx = GetServers().Count() + GetClients().GetIndex(from);
-    }
+    int idx = GetClients().GetIndex(from);
 
     if(!m_received[idx].isEmpty()) {
       qWarning() << "Receiving a second message from: " << from;

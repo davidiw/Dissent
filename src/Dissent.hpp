@@ -1,6 +1,8 @@
 #ifndef DISSENT_DISSENT_H_GUARD
 #define DISSENT_DISSENT_H_GUARD
 
+#include "Anonymity/BaseDCNetRound.hpp"
+#include "Anonymity/CSDCNetRound.hpp"
 #include "Anonymity/Log.hpp"
 #include "Anonymity/NeffShuffleRound.hpp"
 #include "Anonymity/NullRound.hpp"

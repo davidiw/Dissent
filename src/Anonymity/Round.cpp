@@ -20,7 +20,8 @@ namespace Anonymity {
     m_overlay(overlay),
     m_get_data_cb(get_data),
     m_successful(false),
-    m_interrupted(false)
+    m_interrupted(false),
+    m_header(QByteArray(1, 127))
   {
   }
 
@@ -37,13 +38,13 @@ namespace Anonymity {
   void Round::VerifiableSend(const Connections::Id &to,
       const QByteArray &data)
   {
-    QByteArray msg = QByteArray(1, 127) + data + GetKey()->Sign(data);
+    QByteArray msg = m_header + data + GetKey()->Sign(data);
     GetOverlay()->SendNotification(to, "SessionData", msg);
   }
 
   void Round::VerifiableBroadcast(const QByteArray &data)
   {
-    QByteArray msg = QByteArray(1, 127) + data + GetKey()->Sign(data);
+    QByteArray msg = m_header + data + GetKey()->Sign(data);
     GetOverlay()->Broadcast("SessionData", msg);
   }
 
@@ -51,7 +52,7 @@ namespace Anonymity {
   {
     Q_ASSERT(GetOverlay()->AmServer());
 
-    QByteArray msg = QByteArray(1, 127) + data + GetKey()->Sign(data);
+    QByteArray msg = m_header + data + GetKey()->Sign(data);
     foreach(const Connections::Id &id, GetOverlay()->GetServerIds()) {
       GetOverlay()->SendNotification(id, "SessionData", msg);
     }
@@ -61,7 +62,7 @@ namespace Anonymity {
   {
     Q_ASSERT(GetOverlay()->AmServer());
 
-    QByteArray msg = QByteArray(1, 127) + data + GetKey()->Sign(data);
+    QByteArray msg = m_header + data + GetKey()->Sign(data);
     foreach(const QSharedPointer<Connections::Connection> &con,
         GetOverlay()->GetConnectionTable().GetConnections())
     {

@@ -116,7 +116,6 @@ namespace Utils {
         break;
       }
     }
-    qDebug() << _queue.size() << next;
     return next;
   }
 

@@ -625,6 +625,11 @@ namespace Server {
                 state.data(), &SessionSharedState::DefaultHandleServerStop)));
       }
 
+      ~RegisteringState()
+      {
+        m_register_timer.Stop();
+      }
+
       virtual ProcessResult Init()
       {
         QSharedPointer<ServerSessionSharedState> state =

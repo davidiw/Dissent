@@ -8,6 +8,7 @@
 
 #include "Connections/Id.hpp"
 #include "Crypto/AsymmetricKey.hpp"
+#include "Crypto/Serialization.hpp"
 #include "Messaging/Message.hpp"
 
 #include "ServerInit.hpp"

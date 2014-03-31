@@ -11,6 +11,7 @@
 #include "Utils/TimerCallback.hpp"
 
 #include "SessionData.hpp"
+#include "ServerEnlisted.hpp"
 #include "ServerList.hpp"
 #include "ServerSession.hpp"
 #include "ServerStart.hpp"
@@ -42,6 +43,11 @@ namespace Server {
       bool IsProposer() const
       {
         return GetOverlay()->GetId() == GetOverlay()->GetServerIds().first();
+      }
+
+      Connections::Id GetProposer() const
+      {
+        return GetOverlay()->GetServerIds().first();
       }
 
       void CheckClientRegister(const ClientRegister &clr)
@@ -92,6 +98,7 @@ namespace Server {
           ServerStop stop(GetOverlay()->GetId(), round_id, true,
               "Server disconnected: " + id.ToString());
           stop.SetSignature(GetPrivateKey()->Sign(stop.GetPayload()));
+
           GetOverlay()->Broadcast("SessionData", stop.GetPacket());
         }
         return Messaging::State::NoChange;
@@ -114,15 +121,21 @@ namespace Server {
           round_id = GetInit()->GetNonce();
         }
 
-        if(round_id != stop.GetRoundId()) {
+        if((GetRoundId() != stop.GetRoundId()) &&
+            (GetInit() && (GetInit()->GetNonce() != stop.GetRoundId())))
+        {
+          QString expected = (GetInit() ? GetInit()->GetNonce().toBase64() : "")
+            + " or " + GetRoundId().toBase64();
+
           throw Utils::QRunTimeError("RoundId mismatch. Expected: " +
-              round_id.toBase64() + ", found: " +
+              expected + ", found: " +
               stop.GetRoundId().toBase64() + ", from " +
               stop.GetId().ToString());
         }
 
-        qDebug() << "Stopping Round:" << GetRoundId().toBase64() <<
-          "Reason:" << stop.GetReason() <<
+        QString round = GetRoundId().isEmpty() ? "Enlist:" : "Round:";
+        qDebug() << GetOverlay()->GetId() << "Stopping" << round <<
+          stop.GetRoundId().toBase64() << "Reason:" << stop.GetReason() <<
           "Immediately: " << stop.GetImmediate();
         return stop.GetImmediate();
       }
@@ -166,9 +179,6 @@ namespace Server {
         AddMessageProcessor(SessionMessage::ServerInit,
             QSharedPointer<StateCallback>(new StateCallbackImpl<OfflineState>(this,
                 &OfflineState::HandleServerInit)));
-        AddMessageProcessor(SessionMessage::ServerEnlist,
-            QSharedPointer<StateCallback>(new StateCallbackImpl<OfflineState>(this,
-                &OfflineState::HandleServerEnlist)));
         AddMessageProcessor(SessionMessage::ServerStop,
             QSharedPointer<StateCallback>(new StateCallbackImpl<OfflineState>(this,
                 &OfflineState::HandleServerStop)));
@@ -176,13 +186,6 @@ namespace Server {
 
     private:
       ProcessResult HandleServerInit(
-          const QSharedPointer<Messaging::ISender> &,
-          const QSharedPointer<Messaging::Message> &)
-      {
-        return StoreMessage;
-      }
-
-      ProcessResult HandleServerEnlist(
           const QSharedPointer<Messaging::ISender> &,
           const QSharedPointer<Messaging::Message> &)
       {
@@ -207,9 +210,6 @@ namespace Server {
         AddMessageProcessor(SessionMessage::ServerInit,
             QSharedPointer<StateCallback>(new StateCallbackImpl<WaitingForServersState>(this,
                 &WaitingForServersState::HandleServerInit)));
-        AddMessageProcessor(SessionMessage::ServerEnlist,
-            QSharedPointer<StateCallback>(new StateCallbackImpl<WaitingForServersState>(this,
-                &WaitingForServersState::HandleServerEnlist)));
         AddMessageProcessor(SessionMessage::ServerStop,
             QSharedPointer<StateCallback>(new StateCallbackImpl<WaitingForServersState>(this,
                 &WaitingForServersState::HandleServerStop)));
@@ -240,13 +240,6 @@ namespace Server {
 
     private:
       ProcessResult HandleServerInit(
-          const QSharedPointer<Messaging::ISender> &,
-          const QSharedPointer<Messaging::Message> &)
-      {
-        return StoreMessage;
-      }
-
-      ProcessResult HandleServerEnlist(
           const QSharedPointer<Messaging::ISender> &,
           const QSharedPointer<Messaging::Message> &)
       {
@@ -292,9 +285,6 @@ namespace Server {
             SessionStates::Init,
             SessionMessage::ServerInit)
       {
-        AddMessageProcessor(SessionMessage::ServerEnlist,
-            QSharedPointer<StateCallback>(new StateCallbackImpl<InitState>(this,
-                &InitState::HandleServerEnlist)));
         AddMessageProcessor(SessionMessage::ServerStop,
             QSharedPointer<StateCallback>(new StateCallbackImpl<InitState>(this,
                 &InitState::HandleServerStop)));
@@ -317,13 +307,18 @@ namespace Server {
         rand.GenerateBlock(nonce);
         qint64 ctime = Utils::Time::GetInstance().MSecsSinceEpoch();
         // @TODO compute GroupId
-        ServerInit init(state->GetOverlay()->GetId(), nonce, ctime, QByteArray(16, 0));
-        init.SetSignature(state->GetPrivateKey()->Sign(init.GetPayload()));
+        QSharedPointer<ServerInit> init(new ServerInit(
+              state->GetOverlay()->GetId(), nonce, ctime, QByteArray(16, 0)));
+        init->SetSignature(state->GetPrivateKey()->Sign(init->GetPayload()));
+        state->SetInit(init);
 
         foreach(const Connections::Id &remote_id, state->GetOverlay()->GetServerIds()) {
-          state->GetOverlay()->SendNotification(remote_id, "SessionData", init.GetPacket());
+          if(remote_id == state->GetProposer()) {
+            continue;
+          }
+          state->GetOverlay()->SendNotification(remote_id, "SessionData", init->GetPacket());
         }
-        return NoChange;
+        return NextState;
       }
 
       virtual ProcessResult ProcessPacket(
@@ -332,8 +327,8 @@ namespace Server {
       {
         QSharedPointer<ServerSessionSharedState> state =
           GetSharedState().dynamicCast<ServerSessionSharedState>();
-        QSharedPointer<ServerInit> init = msg.dynamicCast<ServerInit>();
 
+        QSharedPointer<ServerInit> init = msg.dynamicCast<ServerInit>();
         Connections::Id first = state->GetOverlay()->GetServerIds().first();
         if(init->GetId() != first) {
           throw Utils::QRunTimeError("Expected: " + first.ToString() +
@@ -357,7 +352,6 @@ namespace Server {
           } else if(c_init->GetPacket() == init->GetPacket()) {
             return NoChange;
           }
-          qDebug() << (c_init->GetPacket() == init->GetPacket());
         }
 
         state->SetInit(init);
@@ -378,13 +372,6 @@ namespace Server {
       }
 
     private:
-      ProcessResult HandleServerEnlist(
-          const QSharedPointer<Messaging::ISender> &,
-          const QSharedPointer<Messaging::Message> &)
-      {
-        return StoreMessage;
-      }
-
       ProcessResult HandleServerStop(
           const QSharedPointer<Messaging::ISender> &,
           const QSharedPointer<Messaging::Message> &)
@@ -398,11 +385,14 @@ namespace Server {
       EnlistState(const QSharedPointer<Messaging::StateData> &data) :
         SessionState(data,
             SessionStates::Enlist,
-            SessionMessage::ServerEnlist)
+            SessionMessage::ServerEnlisted)
       {
         AddMessageProcessor(SessionMessage::ServerAgree,
             QSharedPointer<StateCallback>(new StateCallbackImpl<EnlistState>(this,
                 &EnlistState::HandleServerAgree)));
+        AddMessageProcessor(SessionMessage::ServerEnlist,
+            QSharedPointer<StateCallback>(new StateCallbackImpl<EnlistState>(this,
+                &EnlistState::HandleServerEnlist)));
 
         QSharedPointer<SessionSharedState> state =
           GetSharedState().dynamicCast<SessionSharedState>();
@@ -416,7 +406,7 @@ namespace Server {
         QSharedPointer<ServerSessionSharedState> state =
           GetSharedState().dynamicCast<ServerSessionSharedState>();
         qDebug() << state->GetOverlay()->GetId() << this << "sending" <<
-          SessionMessage::MessageTypeToString(GetMessageType());
+          SessionMessage::MessageTypeToString(SessionMessage::ServerEnlist);
 
         state->GenerateRoundData();
 
@@ -425,18 +415,64 @@ namespace Server {
             state->GetOptionalPublic());
         enlist.SetSignature(state->GetPrivateKey()->Sign(enlist.GetPayload()));
 
-        foreach(const Connections::Id &remote_id, state->GetOverlay()->GetServerIds()) {
-          state->GetOverlay()->SendNotification(remote_id, "SessionData", enlist.GetPacket());
-        }
+        state->GetOverlay()->SendNotification(state->GetProposer(),
+            "SessionData", enlist.GetPacket());
         return NoChange;
       }
 
       virtual ProcessResult ProcessPacket(
-          const QSharedPointer<Messaging::ISender> &from,
+          const QSharedPointer<Messaging::ISender> &,
           const QSharedPointer<Messaging::Message> &msg)
       {
         QSharedPointer<ServerSessionSharedState> state =
           GetSharedState().dynamicCast<ServerSessionSharedState>();
+        QSharedPointer<ServerEnlisted> enlisted = msg.dynamicCast<ServerEnlisted>();
+
+        QSharedPointer<Crypto::AsymmetricKey> key =
+          state->GetKeyShare()->GetKey(state->GetProposer().ToString());
+        if(!key->Verify(enlisted->GetPayload(), enlisted->GetSignature())) {
+          throw Utils::QRunTimeError("Invalid signature");
+        }
+
+        int expected = state->GetOverlay()->GetServerIds().size();
+        int found = enlisted->GetEnlists().size();
+        if(expected != found) {
+          throw Utils::QRunTimeError("Expected " + QString::number(expected) +
+             " ServerEnlists found " + QString::number(found));
+        }
+
+        foreach(const QSharedPointer<ServerEnlist> &enlist, enlisted->GetEnlists()) {
+          VerifyEnlist(enlist);
+        }
+        return NextState;
+      }
+
+      virtual ProcessResult HandleDisconnection(const Connections::Id &id)
+      {
+        QSharedPointer<ServerSessionSharedState> state =
+          GetSharedState().dynamicCast<ServerSessionSharedState>();
+        return state->DefaultHandleDisconnection(id);
+      }
+
+    private:
+      ProcessResult HandleServerEnlist(
+          const QSharedPointer<Messaging::ISender> &,
+          const QSharedPointer<Messaging::Message> &msg)
+      {
+        QSharedPointer<ServerSessionSharedState> state =
+          GetSharedState().dynamicCast<ServerSessionSharedState>();
+        if(state->IsProposer()) {
+          return VerifyEnlist(msg.dynamicCast<ServerEnlist>());
+        } else {
+          throw Utils::QRunTimeError("Unexpected");
+        }
+      }
+      
+      ProcessResult VerifyEnlist(const QSharedPointer<ServerEnlist> &msg)
+      {
+        QSharedPointer<ServerSessionSharedState> state =
+          GetSharedState().dynamicCast<ServerSessionSharedState>();
+
         QSharedPointer<ServerEnlist> enlist = msg.dynamicCast<ServerEnlist>();
         Connections::Id remote_id = enlist->GetId();
 
@@ -444,10 +480,8 @@ namespace Server {
           throw Utils::QRunTimeError("Not a server: " + remote_id.ToString());
         }
 
-        InitState init_state(state);
-        if(init_state.ProcessPacket(from, enlist->GetInit()) == NextState) {
-          m_enlist_msgs.clear();
-          Init();
+        if(state->GetInit()->GetPacket() != enlist->GetInit()->GetPacket()) {
+          throw Utils::QRunTimeError("Invalid ServerInit");
         }
 
         // This is just a repeat of the current init message with no new state
@@ -468,23 +502,26 @@ namespace Server {
 
         m_enlist_msgs[remote_id] = enlist;
         if(m_enlist_msgs.count() != state->GetOverlay()->GetServerIds().size()) {
-          qDebug() << state->GetOverlay()->GetId() << this << "have" <<
-            m_enlist_msgs.count() << "of" << state->GetOverlay()->GetServerIds().size();
+          qDebug() << state->GetOverlay()->GetId() << this << "from" <<
+            enlist->GetId() << "have" << m_enlist_msgs.count() << "of" <<
+            state->GetOverlay()->GetServerIds().size();
           return NoChange;
         }
 
         state->SetEnlistMsgs(m_enlist_msgs);
+
+        ServerEnlisted enlisted(m_enlist_msgs.values());
+        enlisted.SetSignature(state->GetPrivateKey()->Sign(enlisted.GetPayload()));
+        foreach(const Connections::Id &remote_id, state->GetOverlay()->GetServerIds()) {
+          if(remote_id == state->GetProposer()) {
+            continue;
+          }
+          state->GetOverlay()->SendNotification(remote_id, "SessionData", enlisted.GetPacket());
+        }
+
         return NextState;
       }
 
-      virtual ProcessResult HandleDisconnection(const Connections::Id &id)
-      {
-        QSharedPointer<ServerSessionSharedState> state =
-          GetSharedState().dynamicCast<ServerSessionSharedState>();
-        return state->DefaultHandleDisconnection(id);
-      }
-
-    private:
       ProcessResult HandleServerAgree(
           const QSharedPointer<Messaging::ISender> &,
           const QSharedPointer<Messaging::Message> &)
@@ -510,8 +547,8 @@ namespace Server {
             QSharedPointer<StateCallback>(new StateCallbackImpl<AgreeState>(this,
                 &AgreeState::HandleServerList)));
 
-        QSharedPointer<SessionSharedState> state =
-          GetSharedState().dynamicCast<SessionSharedState>();
+        QSharedPointer<ServerSessionSharedState> state =
+          GetSharedState().dynamicCast<ServerSessionSharedState>();
         AddMessageProcessor(SessionMessage::ServerStop,
             QSharedPointer<StateCallback>(new StateCallbackImpl<SessionSharedState>(
                 state.data(), &SessionSharedState::DefaultHandleServerStop)));
@@ -942,9 +979,6 @@ namespace Server {
         AddMessageProcessor(SessionMessage::ServerInit,
             QSharedPointer<StateCallback>(new StateCallbackImpl<CommState>(this,
                 &CommState::HandleServerInit)));
-        AddMessageProcessor(SessionMessage::ServerEnlist,
-            QSharedPointer<StateCallback>(new StateCallbackImpl<CommState>(this,
-                &CommState::HandleServerEnlist)));
 
         QSharedPointer<SessionSharedState> state =
           GetSharedState().dynamicCast<SessionSharedState>();
@@ -1011,13 +1045,6 @@ namespace Server {
       {
         return StoreMessage;
       }
-
-      ProcessResult HandleServerEnlist(
-          const QSharedPointer<Messaging::ISender> &,
-          const QSharedPointer<Messaging::Message> &)
-      {
-        return StoreMessage;
-      }
   };
 }
 
@@ -1038,7 +1065,7 @@ namespace Server {
     GetStateMachine().AddState(new Messaging::StateFactory<InitState>(
           SessionStates::Init, SessionMessage::ServerInit));
     GetStateMachine().AddState(new Messaging::StateFactory<EnlistState>(
-          SessionStates::Enlist, SessionMessage::ServerEnlist));
+          SessionStates::Enlist, SessionMessage::ServerEnlisted));
     GetStateMachine().AddState(new Messaging::StateFactory<AgreeState>(
           SessionStates::Agree, SessionMessage::ServerAgree));
     GetStateMachine().AddState(new Messaging::StateFactory<RegisteringState>(
@@ -1071,6 +1098,7 @@ namespace Server {
 
     AddMessageParser(new Messaging::MessageParser<ServerInit>(SessionMessage::ServerInit));
     AddMessageParser(new Messaging::MessageParser<ServerEnlist>(SessionMessage::ServerEnlist));
+    AddMessageParser(new Messaging::MessageParser<ServerEnlisted>(SessionMessage::ServerEnlisted));
     AddMessageParser(new Messaging::MessageParser<ServerAgree>(SessionMessage::ServerAgree));
     AddMessageParser(new Messaging::MessageParser<ClientRegister>(SessionMessage::ClientRegister));
     AddMessageParser(new Messaging::MessageParser<ServerList>(SessionMessage::ServerList));

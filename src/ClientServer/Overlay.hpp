@@ -151,6 +151,13 @@ namespace ClientServer {
        */
       virtual void Broadcast(const QString &method, const QVariant &data);
 
+      /**
+       * Send a notification to all servers
+       * @param method The Rpc to call
+       * @param data Data to be sent to all members
+       */
+      virtual void BroadcastToServers(const QString &method, const QVariant &data);
+
       virtual void Forward(const Connections::Id &to, const QByteArray &data);
 
     signals:

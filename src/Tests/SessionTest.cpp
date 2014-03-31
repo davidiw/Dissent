@@ -154,9 +154,9 @@ namespace Tests {
     RunUntil(sc, sessions.clients.size() * (sessions.clients.size() + sessions.servers.size()));
 
     foreach(const QSharedPointer<BufferSink> &sink, sessions.sinks) {
-      EXPECT_EQ(messages.size(), sink->Count());
+      ASSERT_EQ(messages.size(), sink->Count());
       for(int idx = 0; idx < sink->Count(); idx++) {
-        EXPECT_TRUE(messages.contains(sink->At(idx).second));
+        ASSERT_TRUE(messages.contains(sink->At(idx).second));
       }
     }
     qDebug() << "Finished SendTest";
@@ -204,7 +204,6 @@ namespace Tests {
         }
         disced[to_disc] = true;
         Id remote = sessions.network.first[to_disc]->GetId();
-        qDebug() << "PP" << remote;
         op_disc->GetConnectionTable().GetConnection(remote)->Disconnect();
       }
     }

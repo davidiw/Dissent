@@ -93,6 +93,13 @@ namespace ClientServer {
     return sender;
   }
 
+  void Overlay::BroadcastToServers(const QString &method, const QVariant &data)
+  {
+    foreach(const Connections::Id &id, GetServerIds()) {
+      SendNotification(id, method, data);
+    }
+  }
+
   void Overlay::Broadcast(const QString &method, const QVariant &data)
   {
     QVariantList msg;

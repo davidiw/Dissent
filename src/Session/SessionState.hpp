@@ -51,6 +51,8 @@ namespace Session {
           SessionStates::Names state, SessionMessage::Names msg_type) :
         Messaging::State(data, state, msg_type)
       {
+        qDebug() << GetSharedState()->GetOverlay()->GetId() <<
+          "entering" << SessionStates::StateTypeToString(state);
       }
 
       virtual ProcessResult ProcessPacket(

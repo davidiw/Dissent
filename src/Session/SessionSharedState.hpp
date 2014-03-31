@@ -239,6 +239,7 @@ namespace Session {
       QList<QSharedPointer<ServerAgree> > m_server_list;
       QByteArray m_server_bytes;
       QList<QSharedPointer<ClientRegister> > m_client_list;
+      QByteArray m_last;
 
       DataQueue m_send_queue;
   };

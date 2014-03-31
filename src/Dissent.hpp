@@ -102,6 +102,7 @@
 #include "Session/SerializeList.hpp"
 #include "Session/ServerAgree.hpp"
 #include "Session/ServerEnlist.hpp"
+#include "Session/ServerEnlisted.hpp"
 #include "Session/ServerInit.hpp"
 #include "Session/ServerList.hpp"
 #include "Session/ServerQueued.hpp"

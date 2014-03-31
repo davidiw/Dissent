@@ -2,6 +2,7 @@
 
 #include "Crypto/DiffieHellman.hpp"
 #include "Crypto/DsaPrivateKey.hpp"
+#include "Crypto/Hash.hpp"
 #include "Utils/QRunTimeError.hpp"
 
 #include "SerializeList.hpp"
@@ -77,14 +78,14 @@ namespace Session {
     }
 
     if(GetRoundId() != stop.GetRoundId()) {
-      throw Utils::QRunTimeError("RoundId mismatch. Expected: " +
+      throw Utils::QRunTimeError("Stop RoundId mismatch. Expected: " +
           GetRoundId().toBase64() + ", found: " +
           stop.GetRoundId().toBase64() + ", from " +
           stop.GetId().ToString());
     }
 
-    qDebug() << "Stopping Round:" << GetRoundId().toBase64() <<
-      "Reason:" << stop.GetReason() <<
+    qDebug() << GetOverlay()->GetId() << "Stopping Round:" <<
+      GetRoundId().toBase64() << "Reason:" << stop.GetReason() <<
       "Immediately: " << stop.GetImmediate();
     return stop.GetImmediate();
   }
@@ -93,7 +94,26 @@ namespace Session {
       const QSharedPointer<Messaging::ISender> &,
       const QSharedPointer<Messaging::Message> &msg)
   {
+    Crypto::Hash hash;
+    QByteArray hashvalue = hash.ComputeHash(msg->GetPacket());
+    if(hashvalue == m_last) {
+      return Messaging::State::NoChange;
+    }
+    m_last = hashvalue;
+
+    QSharedPointer<ServerStop> stop = msg.dynamicCast<ServerStop>();
     CheckServerStop(*(msg.dynamicCast<ServerStop>()));
+
+    if(GetOverlay()->GetServerIds().first() == GetOverlay()->GetId()) {
+      qDebug() << "Received a ServerStop message from" << stop->GetId() << "... redistributing...";
+      if(GetRoundId() == stop->GetRoundId()) {
+        GetOverlay()->Broadcast("SessionData", msg->GetPacket());
+      } else {
+        GetOverlay()->BroadcastToServers("SessionData", msg->GetPacket());
+      }
+    } else {
+      qDebug() << "Received a ServerStop message from" << stop->GetId();
+    }
     return Messaging::State::Restart;
   }
 

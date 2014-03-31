@@ -154,6 +154,7 @@ HEADERS += src/Dissent.hpp \
            src/Session/SerializeList.hpp \
            src/Session/ServerAgree.hpp \
            src/Session/ServerEnlist.hpp \
+           src/Session/ServerEnlisted.hpp \
            src/Session/ServerInit.hpp \
            src/Session/ServerList.hpp \
            src/Session/ServerQueued.hpp \

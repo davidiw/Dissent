@@ -21,6 +21,7 @@ namespace Session {
         None = Messaging::Message::BadMessageType,
         ServerInit = 0,
         ServerEnlist,
+        ServerEnlisted,
         ServerAgree,
         ServerQueued,
         ClientRegister,
